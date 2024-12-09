@@ -1,8 +1,9 @@
 from enum import Enum
 
+from django.core.validators import MinValueValidator
 from django.db import models
 
-from utilisateur.models import Laborantin, Medecin, Patient, Radiologue
+from utilisateur.models import Laborantin, Medecin, Patient, Radiologue, Utilisateur
 
 # Create your models here.
 
@@ -11,6 +12,9 @@ from utilisateur.models import Laborantin, Medecin, Patient, Radiologue
 class Dpi(models.Model):
     patient = models.OneToOneField(
         Patient, on_delete=models.CASCADE, related_name="dossier_patient"
+    )
+    hopital_initial = models.OneToOneField(
+        "Hopital", on_delete=models.SET_NULL, null=True
     )
     qr_code = models.TextField(
         max_length=500, blank=True
@@ -38,6 +42,11 @@ class Soin(models.Model):
     coup = models.DecimalField(max_digits=5, decimal_places=2)
 
 
+class DpiSoin(models.Model):
+    dpi = models.ForeignKey(Dpi, on_delete=models.CASCADE)
+    soin = models.ForeignKey(Soin, on_delete=models.CASCADE)
+
+
 # Outil Model
 class Outil(models.Model):
     nom = models.CharField(max_length=32)
@@ -46,12 +55,12 @@ class Outil(models.Model):
 # Consultation Model
 class Consultation(models.Model):
     dpi = models.ForeignKey(Dpi, on_delete=models.CASCADE, related_name="consultations")
-    medecin = models.ForeignKey(
-        Medecin, on_delete=models.CASCADE, related_name="consultations"
+    medecin_principal = models.ForeignKey(
+        Medecin, on_delete=models.SET_NULL, null=True, related_name="consultations"
     )
+    hopital = models.ForeignKey("Hopital", on_delete=models.CASCADE)
     date_de_consultation = models.DateField(auto_now_add=True)
     notes = models.TextField(blank=True)
-    outils = models.ManyToManyField(Outil, through="ConsultationOutil")
 
 
 # Medicament Model
@@ -65,17 +74,17 @@ class Ordonnance(models.Model):
     consultation = models.ForeignKey(
         Consultation, on_delete=models.CASCADE, related_name="ordonnances"
     )
-    medicaments = models.ManyToManyField(Medicament, through="OrdonnanceMedicament")
     date_de_creation = models.DateField(auto_now_add=True)
-    note = models.TextField(blank=True)
 
 
 # Ordonnance_Medicament Model  --> table intermediare
 class OrdonnanceMedicament(models.Model):
     medicament = models.ForeignKey(Medicament, on_delete=models.CASCADE)
     ordonnance = models.ForeignKey(Ordonnance, on_delete=models.CASCADE)
-    dose = models.CharField(max_length=50)
+    dose = models.CharField(max_length=10)
     duree = models.DecimalField(max_digits=5, decimal_places=2)
+    heure = models.CharField(max_length=10)
+    nombre_de_prises = models.IntegerField(validators=[MinValueValidator(1)])
 
 
 # Certificat Model
@@ -87,6 +96,7 @@ class Certificat(models.Model):
     date_debut = models.DateField(auto_now_add=True)
     date_fin = models.DateField()
     description = models.TextField(blank=True)
+    accorde = models.BooleanField(default=False)
 
 
 # ConsultationOutil Model
@@ -98,6 +108,7 @@ class ConsultationOutil(models.Model):
 # Examen Model
 class Examen(models.Model):
     note = models.TextField()
+    traite = models.BooleanField(default=False)
     consultation = models.ForeignKey(Consultation, on_delete=models.CASCADE)
 
 
@@ -149,3 +160,16 @@ class GraphiqueTendance(models.Model):
     bilan_biologique = models.OneToOneField(
         BilanBiologique, on_delete=models.CASCADE, related_name="graphique_tendance"
     )
+
+
+# Hopital Model
+class Hopital(models.Model):
+    nom = models.CharField(max_length=64)
+    lieu = models.CharField(max_length=64)
+    date_debut_service = models.DateField(auto_now_add=True)
+
+
+class HopitalUtilisateur(models.Model):
+    utilisateur = models.ForeignKey(Utilisateur, on_delete=models.CASCADE)
+    hopital = models.ForeignKey(Hopital, on_delete=models.CASCADE)
+    date_adhesion = models.DateField(auto_now_add=True)
