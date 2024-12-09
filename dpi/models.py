@@ -1,9 +1,16 @@
 from enum import Enum
 
-from django.core.validators import MinValueValidator
+from django.core.validators import MinValueValidator, RegexValidator
 from django.db import models
 
-from utilisateur.models import Laborantin, Medecin, Patient, Radiologue, Utilisateur
+from utilisateur.models import (
+    Administratif,
+    Laborantin,
+    Medecin,
+    Patient,
+    Radiologue,
+    Utilisateur,
+)
 
 # Create your models here.
 
@@ -61,6 +68,11 @@ class Consultation(models.Model):
     hopital = models.ForeignKey("Hopital", on_delete=models.CASCADE)
     date_de_consultation = models.DateField(auto_now_add=True)
     notes = models.TextField(blank=True)
+
+
+class ConsultationMedecin(models.Model):
+    consultation = models.ForeignKey(Consultation, on_delete=models.CASCADE)
+    medecin = models.ForeignKey(Medecin, on_delete=models.CASCADE)
 
 
 # Medicament Model
@@ -173,3 +185,50 @@ class HopitalUtilisateur(models.Model):
     utilisateur = models.ForeignKey(Utilisateur, on_delete=models.CASCADE)
     hopital = models.ForeignKey(Hopital, on_delete=models.CASCADE)
     date_adhesion = models.DateField(auto_now_add=True)
+
+
+class Hospitazliation(models.Model):
+    date_entree = models.DateField(auto_now_add=False)
+    date_sortie = models.DateField(auto_now_add=True)
+    patient = models.ForeignKey(Patient, on_delete=models.CASCADE)
+    cree_par = models.ForeignKey(Administratif, on_delete=models.CASCADE)
+    hopital = models.ForeignKey(Hopital, on_delete=models.CASCADE)
+
+
+class Antecedant(models.Model):
+    nom = models.CharField(max_length=64)
+    type = models.CharField(max_length=64)
+    dpi = models.ForeignKey(Dpi, on_delete=models.CASCADE)
+
+
+class BilanBiologiqueLaborantin(models.Model):
+    laborantin = models.ForeignKey(Laborantin, on_delete=models.CASCADE)
+    bilan_bio = models.ForeignKey(BilanBiologique, on_delete=models.CASCADE)
+
+
+class BilanRadiologiqueRadiologue(models.Model):
+    radiologue = models.ForeignKey(Radiologue, on_delete=models.CASCADE)
+    bilan_rad = models.ForeignKey(BilanRadiologique, on_delete=models.CASCADE)
+
+
+class ContactUrgence(models.Model):
+    nom = models.CharField(max_length=32)
+    prenom = models.CharField(max_length=32)
+    email = models.EmailField()
+    telephone = models.CharField(
+        max_length=10,
+        unique=True,
+        validators=[
+            RegexValidator(
+                regex=r"^\d{10}$",
+                message="Numero de telephone invalide",
+            )
+        ],
+    )
+
+
+class Decompte(models.Model):
+    tarif = models.DecimalField(max_digits=6, decimal_places=2)
+    date = models.DateField(auto_now_add=True)
+    patient = models.ForeignKey(Patient, on_delete=models.CASCADE)
+    hopital = models.ForeignKey(Hopital, on_delete=models.CASCADE)
