@@ -1,0 +1,25 @@
+from django.contrib.auth.models import BaseUserManager
+from django.utils.translation import gettext_lazy as _
+
+
+class UtilisateurManager(BaseUserManager):
+    def create_user(self, username, email, password=None, **extra_fields):
+        """Create and return a regular user."""
+        if not email:
+            raise ValueError(_("The Email field must be set"))
+        email = self.normalize_email(email)
+        user = self.model(username=username, email=email, **extra_fields)
+        user.set_password(password)  # Hash the password
+        user.save(using=self._db)  # Save the user in the database
+        return user
+
+    def create_superuser(self, username, email, password=None, **extra_fields):
+        """Create and return a superuser."""
+        extra_fields.setdefault("is_staff", True)
+        extra_fields.setdefault("is_superuser", True)
+
+        # Ensure date_naissance is provided when creating a superuser
+        if not extra_fields.get("date_naissance"):
+            raise ValueError(_("The date_naissance field must be set for superusers"))
+
+        return self.create_user(username, email, password, **extra_fields)

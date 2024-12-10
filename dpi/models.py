@@ -178,7 +178,10 @@ class GraphiqueTendance(models.Model):
 class Hopital(models.Model):
     nom = models.CharField(max_length=64)
     lieu = models.CharField(max_length=64)
-    date_debut_service = models.DateField(auto_now_add=True)
+    date_debut_service = models.DateField()
+
+    def __str__(self):
+        return self.nom
 
 
 class HopitalUtilisateur(models.Model):
