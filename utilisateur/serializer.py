@@ -4,36 +4,44 @@ import bcrypt
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
 from .models import Utilisateur ,Patient 
-
+from dpi.models import Dpi
 Utilisateur = get_user_model()
 
-class UtilisateurSerializer(serializers.ModelSerializer):
+
+class UtilisateurSerializer(serializers.ModelSerializer):#serializer pour l'utilisateur 
     class Meta:
         model = Utilisateur
         fields = ('id' ,'nom' ,'prenom' ,'date_naissance' ,'telephone' ,'photo_profil' ,'role' ,'email' ,'password')
         extra_kwargs ={
             'password' : {'write_only':True , 'required':False} 
+            
         }
     # pour generer un mot de passe aleatoire et le crypter
     def generer_mot_de_passe():
         password = ''.join(random.choices(string.ascii_letters + string.digits, k=10))
         return bcrypt.hashpw(password.encode(), bcrypt.gensalt())
     
-    def create(self , validated_data):
-        print("data: ")
+    def create(self , validated_data):# redefinition de la methode create pour creer un utilisateur 
+
         role = validated_data.pop('role',None)
+
         if not role : 
             raise serializers.ValidationError("Le role est obligatoire")
-        if not validated_data['email']:
-            raise serializers.ValidationError("Le email est obligatoire")
-        validated_data['username'] = validated_data['email']
+        email = validated_data.pop('email',None)
+
+        if not email:
+            raise serializers.ValidationError("L'email est obligatoire")
+        validated_data['username'] = email
+        
         password = UtilisateurSerializer.generer_mot_de_passe()
-        user = Utilisateur.objects.create_user(**validated_data ,role=role ,password = password)
 
-        # pour creer un utilisateur avec un role specifique le mot de passe est generer aleatoirement
-        return user.save()  
+        user = Utilisateur.objects.create_user(
+            **validated_data ,role=role ,password = password , email = email
+        )# creation de l'utilisateur
+        return user  
 
-class PatientSerializer(serializers.ModelSerializer):
+
+class PatientSerializer(serializers.ModelSerializer):#serializer pour le patient
     user = UtilisateurSerializer()
     class Meta:
         model = Patient
@@ -43,15 +51,24 @@ class PatientSerializer(serializers.ModelSerializer):
             'user':{'read_only':True}
         }
 
-    def create(self, validated_data):
+    def create(self, validated_data): # redefinition de la methode create pour creer un patient
         user_data = validated_data.pop('user')
-        print("user data : ") 
-        print(user_data)
-       
-        user = Utilisateur.objects.create(**user_data)
-        print(user)
+
+        user = UtilisateurSerializer.create(
+            UtilisateurSerializer(), validated_data=user_data
+        )
+
         # Create the patient instance
-        patient = Patient.objects.create(user=user, **validated_data)
+        patient = Patient.objects.create(
+            user=user, **validated_data
+        ) # creation du patient
+        
+        # Create the DPI instance
+        dpi = Dpi.objects.create(
+            patient=patient
+        )
+        # Generate the QR Code for the DPI
+        dpi.generate_qr_code()
         return patient
 
         
