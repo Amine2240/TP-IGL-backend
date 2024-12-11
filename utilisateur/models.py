@@ -39,6 +39,11 @@ class Utilisateur(
             )
         ],
     )
+    email = models.EmailField(
+        unique=True,
+        blank=False,
+        null=False,
+    )
     photo_profil = models.URLField(max_length=200, blank=True, null=True)
     role = models.CharField(
         max_length=16,
