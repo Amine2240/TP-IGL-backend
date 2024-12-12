@@ -3,11 +3,12 @@ import string
 import bcrypt
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
-from .models import Utilisateur ,Patient 
+from .models import Utilisateur ,Patient ,Medecin
 from dpi.models import Dpi
 Utilisateur = get_user_model()
 
 
+#serializer pour l'utilisateur
 class UtilisateurSerializer(serializers.ModelSerializer):#serializer pour l'utilisateur 
     class Meta:
         model = Utilisateur
@@ -41,6 +42,7 @@ class UtilisateurSerializer(serializers.ModelSerializer):#serializer pour l'util
         return user  
 
 
+#serializer pour le patient
 class PatientSerializer(serializers.ModelSerializer):#serializer pour le patient
     user = UtilisateurSerializer()
     class Meta:
@@ -71,5 +73,25 @@ class PatientSerializer(serializers.ModelSerializer):#serializer pour le patient
         dpi.generate_qr_code()
         return patient
 
-        
+
+
+#serializer pour le medecin
+class MedecinSerializer(serializers.ModelSerializer):#serializer pour le medecin
+    user = UtilisateurSerializer()
+    class Meta:
+        model = Medecin
+        fields = ('id' , 'specialite' , 'user')
+    
+    def create(self, validated_data):# redefinition de la methode create pour creer un medecin
+        user_data = validated_data.pop('user')
+
+        user = UtilisateurSerializer.create(
+            UtilisateurSerializer(), validated_data=user_data
+        )
+
+        # Create the medecin instance
+        medecin = Medecin.objects.create(
+            user=user, **validated_data
+        )# creation du medecin
+        return medecin    
     
