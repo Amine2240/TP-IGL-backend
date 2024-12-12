@@ -33,6 +33,7 @@ class Dpi(models.Model):
     def generate_qr_code(self):
         """Génère un QR Code pour le DPI et l'encode en Base64"""
         # Données à encoder dans le QR Code
+        #data_to_encode = f"https://votre-site.com/dpi/{self.id}"  # Exemple de lien pour accéder à l'objet DPI
         data_to_encode = f"Patient: {self.patient.id}, Hopital: {self.hopital_initial.id if self.hopital_initial else 'N/A'}"
         
         # Générer le QR Code

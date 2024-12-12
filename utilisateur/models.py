@@ -62,7 +62,7 @@ class Patient(models.Model):
     user = models.OneToOneField(
         Utilisateur, on_delete=models.CASCADE, related_name="patient"
     )
-    NSS = models.CharField(max_length=32)
+    NSS = models.CharField(max_length=32 , unique=True)
     mutuelle = models.CharField(max_length=32)
     contact_urgence = models.CharField(
         max_length=10,

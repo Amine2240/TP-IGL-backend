@@ -48,7 +48,7 @@ class PatientSerializer(serializers.ModelSerializer):#serializer pour le patient
         fields = ('id' , 'NSS' , 'user' ,'mutuelle' ,'contact_urgence')
         extra_kwargs ={
             'NSS' : {'required':True} ,
-            'user':{'read_only':True}
+             
         }
 
     def create(self, validated_data): # redefinition de la methode create pour creer un patient
@@ -62,7 +62,7 @@ class PatientSerializer(serializers.ModelSerializer):#serializer pour le patient
         patient = Patient.objects.create(
             user=user, **validated_data
         ) # creation du patient
-        
+
         # Create the DPI instance
         dpi = Dpi.objects.create(
             patient=patient

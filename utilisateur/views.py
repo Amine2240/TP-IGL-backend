@@ -12,8 +12,9 @@ def creer_patient (request):
       if patient_serializer.is_valid():
             patient_serializer.save() # sauvegarde du patient
             return Response(
-                  {"message":"Le patient a été créé avec succès"}, status = status.HTTP_201_CREATED
-            )
+                  {"message":"Le patient a été créé avec succès" ,"patient":patient_serializer.data},
+                    status = status.HTTP_201_CREATED
+                  )
       return Response(
             patient_serializer.errors, status=status.HTTP_400_BAD_REQUEST
          )
