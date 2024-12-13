@@ -1,5 +1,5 @@
 from rest_framework import serializers 
-from .models import Dpi , Consultation  , Hopital
+from .models import Dpi , Consultation  , Hopital , Soin
 from utilisateur.models import Medecin
 from utilisateur.serializer import MedecinSerializer
 from utilisateur.serializer import PatientSerializer
@@ -22,6 +22,7 @@ class HopitalSerializer(serializers.ModelSerializer):
     class Meta :
         model = Hopital 
         fields = ('id' , 'nom' , 'lieu' , 'date_debut_service')
+
 
 
 #serializer pour la Consultation
@@ -73,4 +74,29 @@ class ConsultationSerializer(serializers.ModelSerializer):
         validated_data['dpi'] = dpi
         validated_data['medecin_principal'] = medecin
         validated_data['hopital'] = hopital
+        return super().create(validated_data)
+    
+#serializer pour le soin
+class SoinSerializer(serializers.ModelSerializer):
+    dpi = DpiSerializer(read_only=True) 
+    dpi_id = serializers.IntegerField(write_only=True)
+    class Meta :
+        model = Soin 
+        fields = ('id' , 'date' , 'observation' , 'coup' , 'dpi_id','dpi')
+        extra_kwargs = {
+            'dpi' : {'read_only':True},
+            'date': {'read_only':True}
+            }
+    # redefinition de la methode create pour creer un soin 
+    def create(self, validated_data):
+        # extraire les donnees necessaires a la creation du soin
+        dpi_id = validated_data.pop('dpi_id' , None)
+        # verifier si le DPI existe
+        if not dpi_id:
+            raise serializers.ValidationError("Le DPI est obligatoire")
+        try:
+            dpi = Dpi.objects.get(id=dpi_id)
+        except Dpi.DoesNotExist:
+            raise serializers.ValidationError("Le DPI n'existe pas")
+        validated_data['dpi'] = dpi
         return super().create(validated_data)
