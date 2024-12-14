@@ -56,4 +56,5 @@ def ajouter_Bilan_radiologique(request):# la fonction n'est pas encore terminée
         url = upload_image_to_cloudinary(request)
         return Response({"message":"L'image a été ajoutée avec succès" ,"url":url}, status=status.HTTP_201_CREATED)
     except Exception as e:
+        print(e)
         return Response({"message":str(e)}, status=status.HTTP_400_BAD_REQUEST)

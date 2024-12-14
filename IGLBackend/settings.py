@@ -48,9 +48,9 @@ INSTALLED_APPS = [
 ]
 
 cloudinary.config(
-    cloud_name="do8xskw0g",      
-    api_key="755734193398282",    
-    api_secret="R4MVoGBxIGx_aNXZXrb_Iogwq6Y",  
+    cloud_name=config("CLOUD_NAME"),      
+    api_key=config("API_KEY"),    
+    api_secret=config("API_SECRET"),  
 )
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
