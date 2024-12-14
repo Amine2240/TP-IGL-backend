@@ -1,6 +1,10 @@
 from django.contrib import admin
+from django.contrib.auth.admin import UserAdmin
+from django.contrib.auth.password_validation import validate_password
+from django.core.exceptions import ValidationError
 
 from dpi.models import Hopital, HopitalUtilisateur
+from utilisateur.forms import UtilisateurAdminForm
 from utilisateur.models import (
     Administratif,
     Infermier,
@@ -32,33 +36,34 @@ class HopitalUtilisateurInline(admin.TabularInline):
 # Admin for Hopital (Hospital)
 @admin.register(Hopital)
 class HopitalAdmin(admin.ModelAdmin):
-    list_display = ("nom", "lieu", "date_debut_service")  # Display key fields
-    search_fields = ("nom", "lieu")  # Allow searching by name and location
-    inlines = [HopitalUtilisateurInline]  # Add inline to manage users
+    list_display = ("nom", "lieu", "date_debut_service")
+    search_fields = ("nom", "lieu")
+    inlines = [HopitalUtilisateurInline]
 
 
 # Admin for Utilisateur (User)
 @admin.register(Utilisateur)
 class UtilisateurAdmin(admin.ModelAdmin):
-    list_display = ("username", "email", "nom", "prenom")  # Display user fields
-    search_fields = ("username", "email", "nom", "prenom")  # Search by key fields
-    inlines = [HopitalUtilisateurInline]  # Add inline to manage hospitals
+    list_display = ("username", "email", "nom", "prenom", "role")
+    search_fields = ("username", "email", "nom", "prenom")
+    inlines = [HopitalUtilisateurInline]
+    form = UtilisateurAdminForm
 
 
 # Admin for Medecin
 @admin.register(Medecin)
 class MedecinAdmin(admin.ModelAdmin):
-    list_display = ("user", "specialite")  # Display linked user and specialty
-    search_fields = ("user__nom", "user__prenom", "specialite")  # Allow searching
+    list_display = ("user", "specialite")
+    search_fields = ("user__nom", "user__prenom", "specialite")
 
 
 # Admin for HopitalUtilisateur (Intermediate Table)
 @admin.register(HopitalUtilisateur)
 class HopitalUtilisateurAdmin(admin.ModelAdmin):
-    list_display = ("utilisateur", "hopital", "date_adhesion")  # Display relationship
-    list_filter = ("hopital", "date_adhesion")  # Allow filtering by hospital and date
+    list_display = ("utilisateur", "hopital", "date_adhesion")
+    list_filter = ("hopital", "date_adhesion")
     search_fields = (
         "utilisateur__nom",
         "utilisateur__prenom",
         "hopital__nom",
-    )  # Allow searching
+    )

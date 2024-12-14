@@ -28,30 +28,21 @@ class Dpi(models.Model):
     )  # On va le stocker sous le format base-64
 
 
-# Soins Enum
-class TypeSoin(Enum):
-    TYPE_1 = "type_1"
-    TYPE_2 = "type_2"
-    TYPE_3 = "type_3"
-
-
 # Soin Model
 class Soin(models.Model):
-    dpi = models.ForeignKey(Dpi, on_delete=models.CASCADE, related_name="soins")
-    TYPES_SOINS = [(type.value, type.name.capitalize()) for type in TypeSoin]
-    type = models.CharField(
-        max_length=32,
-        choices=TYPES_SOINS,
-        default=TypeSoin.TYPE_1.value,
-    )
-    date = models.DateField(auto_now_add=True)
-    observation = models.TextField(blank=True)
-    coup = models.DecimalField(max_digits=5, decimal_places=2)
+    nom = models.CharField(max_length=32)
+    type = models.CharField(max_length=32)
+
+    def __str__(self):
+        return f"{self.type}: {self.nom}"
 
 
 class DpiSoin(models.Model):
     dpi = models.ForeignKey(Dpi, on_delete=models.CASCADE)
     soin = models.ForeignKey(Soin, on_delete=models.CASCADE)
+    hopital = models.ForeignKey("Hopital", on_delete=models.CASCADE)
+    date = models.DateField(auto_now_add=True)
+    observation = models.TextField(blank=True)
 
 
 # Outil Model
@@ -79,6 +70,9 @@ class ConsultationMedecin(models.Model):
 class Medicament(models.Model):
     nom = models.CharField(max_length=32)
     effets_secondaire = models.TextField(blank=True)
+
+    def __str__(self):
+        return f"{self.nom}"
 
 
 # Ordonnance Model
