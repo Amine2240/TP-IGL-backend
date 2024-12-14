@@ -11,7 +11,7 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 """
 
 from pathlib import Path
-
+import cloudinary
 from decouple import config
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -42,17 +42,16 @@ INSTALLED_APPS = [
     'rest_framework',
     'cloudinary',
     'cloudinary_storage',
+    'corsheaders',
     "utilisateur",
     "dpi",
 ]
 
-# Cloudinary configuration for media files
-CLOUDINARY_STORAGE = {
-    'CLOUD_NAME': 'do8xskw0g' ,
-    'API_KEY': '755734193398282' ,
-    'API_SECRET':  'R4MVoGBxIGx_aNXZXrb_Iogwq6Y'
-}
-
+cloudinary.config(
+    cloud_name="do8xskw0g",      
+    api_key="755734193398282",    
+    api_secret="R4MVoGBxIGx_aNXZXrb_Iogwq6Y",  
+)
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
@@ -61,7 +60,11 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    'corsheaders.middleware.CorsMiddleware',
+    'django.middleware.common.CommonMiddleware',
 ]
+
+CORS_ALLOW_ALL_ORIGINS = True
 
 ROOT_URLCONF = "IGLBackend.urls"
 
