@@ -166,6 +166,7 @@ class TypeBilan(Enum):
 
 
 # Bilan Model
+
 class Bilan(models.Model):
     TYPES_BILAN = [(type.value, type.name.capitalize()) for type in TypeBilan]
     type = models.CharField(

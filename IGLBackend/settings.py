@@ -40,9 +40,18 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     'rest_framework',
+    'cloudinary',
+    'cloudinary_storage',
     "utilisateur",
     "dpi",
 ]
+
+# Cloudinary configuration for media files
+CLOUDINARY_STORAGE = {
+    'CLOUD_NAME': 'do8xskw0g' ,
+    'API_KEY': '755734193398282' ,
+    'API_SECRET':  'R4MVoGBxIGx_aNXZXrb_Iogwq6Y'
+}
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",

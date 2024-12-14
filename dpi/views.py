@@ -2,7 +2,7 @@ from rest_framework import status
 from rest_framework.response import Response 
 from rest_framework.decorators import api_view
 from .serializer import ConsultationSerializer , HopitalSerializer , SoinSerializer
-
+import cloudinary.uploader
 
 @api_view(['POST'])
 #ajouter des hopitaux par un administrateur du systeme 
@@ -46,3 +46,14 @@ def ajouter_soin(request):
             {"message":"Le soin a été ajouté avec succès" ,"soin":soin_serializer.data},
             status=status.HTTP_201_CREATED)
     return Response(soin_serializer.errors , status=status.HTTP_400_BAD_REQUEST)
+
+@api_view(['POST'])
+def ajouter_Bilan_radiologique(request):
+    print(request.data)
+    print(request.FILES)
+    img = request.FILES.get('Radiographie')
+    if not img:
+        return Response({"message":"Veuillez ajouter une image radiologique"}, status=status.HTTP_400_BAD_REQUEST)
+    uploaded_img = cloudinary.uploader.upload(img, folder='radiographie/')
+    print(uploaded_img)
+    return Response({"message":"L'image radiologique a été ajoutée avec succès" ,"image":uploaded_img['url']}, status=status.HTTP_201_CREATED)
