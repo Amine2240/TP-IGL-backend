@@ -42,15 +42,14 @@ class UtilisateurAdminForm(forms.ModelForm):
 
         return password
 
-    def save(self):
-        print("save")
+    def save(self, commit=True):
         user = super().save(commit=False)
         if user.password and not user.password.startswith(
             ("pbkdf2_sha256$", "bcrypt$", "argon2$")
         ):
             user.password = make_password(user.password)
 
-        super().save()
+        super().save(commit=False)
 
         # Add role-specific logic after saving the user
         if user.role == "medecin":
