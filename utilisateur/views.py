@@ -46,12 +46,3 @@ class Login(APIView):
             samesite="Lax",
         )
         return response
-        """
-        response.set_cookie(
-            key="refresh_token",
-            value=str(refresh),
-            httponly=True,
-            secure=False,
-            samesite="Lax",
-        )
-"""
