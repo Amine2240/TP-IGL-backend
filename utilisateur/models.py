@@ -64,16 +64,6 @@ class Patient(models.Model):
     )
     NSS = models.CharField(max_length=32 , unique=True)
     mutuelle = models.CharField(max_length=32)
-    contact_urgence = models.CharField(
-        max_length=10,
-        validators=[
-            RegexValidator(
-                regex=r"^\d{10}$",
-                message="Numero de telephone invalide",
-            )
-        ],
-    )
-
     def __str__(self):
         return f"Patient: {self.user.nom} {self.user.prenom}"
 

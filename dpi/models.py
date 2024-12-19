@@ -256,7 +256,6 @@ class ContactUrgence(models.Model):
     email = models.EmailField()
     telephone = models.CharField(
         max_length=10,
-        unique=True,
         validators=[
             RegexValidator(
                 regex=r"^\d{10}$",

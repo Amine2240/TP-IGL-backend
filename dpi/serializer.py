@@ -2,16 +2,67 @@ from rest_framework import serializers
 from .models import Dpi , Consultation  , ContactUrgence , Soin , Medicament ,  Examen , Bilan ,Outil 
 from utilisateur.serializer import PatientSerializer
 
-#serializer pour le DPI
+
+
+#contact_urgence Serializer
+class ContactUrgenceSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ContactUrgence
+        fields = ('id' , 'nom' , 'prenom' , 'telephone' , 'email')
+
+    
+
 class DpiSerializer(serializers.ModelSerializer):
-    patient = PatientSerializer(read_only=True)
+    patient = PatientSerializer()
+    contact_urgence = ContactUrgenceSerializer()  
+
     class Meta:
         model = Dpi
-        fields = ('id' ,'patient' , 'hopital_initial' ,'qr_code',)
-        extra_kwargs={
-            'qr_code' :{'read_only':True},
-            'patient' :{'read_only':True}
+        fields = ('id', 'patient', 'contact_urgence', 'hopital_initial', 'qr_code',)
+        extra_kwargs = {
+            'qr_code': {'read_only': True},
         }
+
+    def create(self, validated_data):
+        # Extract patient and contact_urgence data
+        patient_data = validated_data.pop('patient', None)
+        contact_urgence_data = validated_data.pop('contact_urgence', None)
+
+        # Validate patient data
+        if not patient_data:
+            raise serializers.ValidationError("Les informations du patient sont obligatoires")
+
+        # Validate contact_urgence data
+        if not contact_urgence_data:
+            raise serializers.ValidationError("Les informations de contact d'urgence sont obligatoires")
+
+        # Create or get the Patient object
+        patient = PatientSerializer.create(PatientSerializer(), validated_data=patient_data)
+
+        # Handle ContactUrgence
+        telephone = contact_urgence_data.get('telephone')
+        try:
+            # Try to get the existing contact_urgence by telephone
+            contact_urgence = ContactUrgence.objects.get(telephone=telephone)
+        
+        except ContactUrgence.DoesNotExist:
+            # Create a new contact_urgence if it doesn't exist
+            contact_urgence = ContactUrgence.objects.create(**contact_urgence_data)
+
+        # Attach the objects to validated_data
+        validated_data['patient'] = patient
+        validated_data['contact_urgence'] = contact_urgence
+
+        # Create the DPI object
+        dpi = super().create(validated_data=validated_data)
+
+        # Generate the QR code after creation
+        dpi.generate_qr_code()
+
+        return dpi
+
+
+
     
 #serializer pour le soin
 class SoinSerializer(serializers.ModelSerializer):

@@ -4,7 +4,7 @@ import bcrypt
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
 from .models import Utilisateur ,Patient 
-from dpi.models import Dpi , ContactUrgence
+
 Utilisateur = get_user_model()
 #serializer pour l'utilisateur
 class UtilisateurSerializer(serializers.ModelSerializer):#serializer pour l'utilisateur 
@@ -40,49 +40,22 @@ class UtilisateurSerializer(serializers.ModelSerializer):#serializer pour l'util
         return user  
 
 
-#contact_urgence Serializer
-class ContactUrgenceSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = ContactUrgence
-        fields = ('id' , 'nom' , 'prenom' , 'telephone' ,'email')
-        extra_kwargs = {
-            'nom' : {'required':True},
-            'prenom' : {'required':True},
-            'telephone' : {'required':True},
-        }
-    
-    def create(self, validated_data):
-        nom = validated_data.get('nom', None)
-        prenom = validated_data.get('prenom', None)
-        telephone = validated_data.get('telephone', None)
-        if not nom:
-            raise serializers.ValidationError("Le nom est obligatoire")
-        if not prenom:
-            raise serializers.ValidationError("Le prenom est obligatoire")
-        if not telephone:
-            raise serializers.ValidationError("Le telephone est obligatoire")
-        try:
-            contact_urgence = ContactUrgence.objects.get(nom=nom , prenom=prenom , telephone=telephone )
-        except ContactUrgence.DoesNotExist:
-            contact_urgence = super().create(validated_data)
-        return contact_urgence
-    
+
 
 
 #serializer pour le patient
 class PatientSerializer(serializers.ModelSerializer):#serializer pour le patient
     user = UtilisateurSerializer()
-    contact_urgence = ContactUrgenceSerializer()
     class Meta:
         model = Patient
-        fields = ('id' , 'NSS' , 'user' ,'mutuelle' ,'contact_urgence')
+        fields = ('id' , 'NSS' , 'user' ,'mutuelle' )
         extra_kwargs ={
             'NSS' : {'required':True} ,   
         }
 
     def create(self, validated_data): # redefinition de la methode create pour creer un patient
-        user_data = validated_data.pop('user')
-        contact_urgence_data = validated_data.pop('contact_urgence')    
+        user_data = validated_data.pop('user')    
+
         user = UtilisateurSerializer.create(
             UtilisateurSerializer(), validated_data=user_data
         )
@@ -91,17 +64,5 @@ class PatientSerializer(serializers.ModelSerializer):#serializer pour le patient
         patient = Patient.objects.create(
             user=user, **validated_data
         ) # creation du patient
-
-        contact_urgence = ContactUrgenceSerializer.create(
-            ContactUrgenceSerializer(), validated_data=contact_urgence_data
-        )# creation du contact d'urgence
-
-        # Create the DPI instance
-        dpi = Dpi.objects.create(
-            patient=patient ,
-            contact_urgence=contact_urgence
-        )
-        # Generate the QR Code for the DPI
-        dpi.generate_qr_code()
         return patient
 

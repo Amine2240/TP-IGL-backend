@@ -3,7 +3,7 @@ from .views import *
 
 #les urls de l'application dpi 
 urlpatterns = [
+      path('/creer-dpi' , creer_dpi),
       path('/ajouter-soin' , ajouter_soin),
-      path('/ajouter-outil' , ajouter_outil),
       path('/ajouter-bilan-radiologique' , ajouter_Bilan_radiologique)
 ]
