@@ -22,13 +22,16 @@ class Dpi(models.Model):
     patient = models.OneToOneField(
         Patient, on_delete=models.CASCADE, related_name="dossier_patient"
     )
+    contact_urgence = models.ForeignKey(
+        "ContactUrgence", on_delete=models.SET_NULL, null=True, related_name="dpis"
+    )
     hopital_initial = models.OneToOneField(
         "Hopital", on_delete=models.SET_NULL, null=True
     )
     qr_code = models.TextField(
         max_length=500, blank=True
     )  # On va le stocker sous le format base-64
-
+    
     # methode pour generer un qr code pour le dpi
     def generate_qr_code(self):
         """Génère un QR Code pour le DPI et l'encode en Base64"""
