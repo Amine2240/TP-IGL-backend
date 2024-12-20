@@ -205,9 +205,7 @@ class BilanBiologique(models.Model):
     laborantin = models.ForeignKey(
         Laborantin, on_delete=models.CASCADE, related_name="bilans"
     )
-    examen = models.OneToOneField(
-        Examen, on_delete=models.CASCADE, related_name="bilan"
-    )
+    examen = models.OneToOneField(Examen, on_delete=models.CASCADE)
 
 
 # Bilan radiologique Model
@@ -215,9 +213,7 @@ class BilanRadiologique(models.Model):
     radiologue = models.ForeignKey(
         Radiologue, on_delete=models.CASCADE, related_name="bilans"
     )
-    examen = models.OneToOneField(
-        Examen, on_delete=models.CASCADE, related_name="bilan"
-    )
+    examen = models.OneToOneField(Examen, on_delete=models.CASCADE)
     images_radio = models.JSONField()  # pour stocker la liste de URL (cloud)
 
 
