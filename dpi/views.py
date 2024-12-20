@@ -42,7 +42,9 @@ def ajouter_Bilan_radiologique(request , pk_examen ):
     
     resultats = request.data.get('examen[resultats]')
     if not resultats :
-         return Response({"Erreur":"Les resultats d'examen sont obligatoire"} , status=status.HTTP_400_BAD_REQUEST)
+         return Response(
+              {"Erreur":"Les resultats d'examen sont obligatoire"} , status=status.HTTP_400_BAD_REQUEST
+            )
     
     examen.resultats = resultats 
     examen.traite = True
@@ -59,9 +61,8 @@ def ajouter_Bilan_radiologique(request , pk_examen ):
         data= data,
     ) 
     if serializer_bilan_radiologique.is_valid():
-        bilan_radiologique = serializer_bilan_radiologique.save()
-        bilan_radiologique.objects.update()
-        return Response({"ok"},status=status.HTTP_200_OK)
+        bilan=serializer_bilan_radiologique.save()
+        return Response({"Message":"Le bilan a été ajouté avec succès" ,"Bilan":bilan}, status=status.HTTP_200_OK)
     return Response(serializer_bilan_radiologique.errors , status=status.HTTP_400_BAD_REQUEST)
         
    
