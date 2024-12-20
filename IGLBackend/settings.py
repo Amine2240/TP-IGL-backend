@@ -13,7 +13,7 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 from datetime import timedelta
 from pathlib import Path
 
-# import cloudinary
+import cloudinary
 from decouple import config
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -45,16 +45,16 @@ INSTALLED_APPS = [
     "rest_framework",
     "rest_framework_simplejwt",
     "dpi",
-    # "cloudinary",
-    # "cloudinary_storage",
+    "cloudinary",
+    "cloudinary_storage",
     "corsheaders",
 ]
 
-"""cloudinary.config(
+cloudinary.config(
     cloud_name=config("CLOUD_NAME"),
     api_key=config("API_KEY"),
     api_secret=config("API_SECRET"),
-)"""
+)
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
         "IGLBackend.authentication.CookieJWTAuthentication",
