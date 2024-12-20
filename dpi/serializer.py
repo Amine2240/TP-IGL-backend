@@ -1,7 +1,7 @@
 from rest_framework import serializers 
-from .models import Dpi , Consultation  , ContactUrgence , Soin , Medicament ,  Examen , Bilan ,Outil 
-from utilisateur.serializer import PatientSerializer
-
+from .models import Dpi , Consultation  , ContactUrgence , Soin , Medicament ,  Examen , Bilan ,Outil  , DpiSoin , BilanRadiologique
+from utilisateur.serializer import PatientSerializer , RadiologueSerializer
+from utilisateur.models import Radiologue
 
 
 #contact_urgence Serializer
@@ -48,7 +48,8 @@ class DpiSerializer(serializers.ModelSerializer):
         except ContactUrgence.DoesNotExist:
             # Create a new contact_urgence if it doesn't exist
             contact_urgence = ContactUrgence.objects.create(**contact_urgence_data)
-
+        if contact_urgence.nom != contact_urgence_data.get('nom') or contact_urgence.prenom != contact_urgence_data.get('prenom') or contact_urgence.email != contact_urgence_data.get('email'):
+            raise serializers.ValidationError("Le contact d'urgence existe déjà avec un autre numéro de téléphone")
         # Attach the objects to validated_data
         validated_data['patient'] = patient
         validated_data['contact_urgence'] = contact_urgence
@@ -65,27 +66,38 @@ class DpiSerializer(serializers.ModelSerializer):
 
     
 #serializer pour le soin
-class SoinSerializer(serializers.ModelSerializer):
+class DpiSoinSerializer(serializers.ModelSerializer):
     dpi = DpiSerializer(read_only=True) 
     dpi_id = serializers.IntegerField(write_only=True)
+    type = serializers.CharField(write_only=True) 
     class Meta :
-        model = Soin 
-        fields = ('id' , 'date' , 'observation' , 'coup' , 'dpi_id','dpi')
+        model = DpiSoin 
+        fields = ('id' , 'date' , 'observation' ,'type', 'dpi_id','dpi')
         extra_kwargs = {
             'dpi' : {'read_only':True},
             'date': {'read_only':True}
+             
             }
     # redefinition de la methode create pour creer un soin 
     def create(self, validated_data):
         # extraire les donnees necessaires a la creation du soin
         dpi_id = validated_data.pop('dpi_id' , None)
+        type = validated_data.pop('type' , None)
+
         # verifier si le DPI existe
+        if not type:
+            raise serializers.ValidationError("Le type du soin est obligatoire")
         if not dpi_id:
             raise serializers.ValidationError("Le DPI est obligatoire")
         try:
             dpi = Dpi.objects.get(id=dpi_id)
         except Dpi.DoesNotExist:
             raise serializers.ValidationError("Le DPI n'existe pas")
+        try :
+            soin = Soin.objects.get( type = type) 
+        except Soin.DoesNotExist:
+             soin = Soin.objects.create(type=type)
+        validated_data['soin'] = soin
         validated_data['dpi'] = dpi
         return super().create(validated_data)
     
@@ -126,9 +138,10 @@ class ExamenSerializer(serializers.ModelSerializer):
 #Bilan Serializer
 class BilanSerializer(serializers.ModelSerializer):
     examen = ExamenSerializer(read_only=True)
+    examen_id = serializers.IntegerField(write_only=True)
     class Meta:
         model = Bilan
-        fields = ('id' , 'examen' , 'resultats')
+        fields = ('id' , 'examen' , 'resultats' ,'examen_id')
         extra_kwargs = {
             'examen' : {'read_only':True},
             'resultat' : {'required':True}
@@ -145,6 +158,28 @@ class OutilSerializer(serializers.ModelSerializer):
         }
 
 
-
-
+#BilanRadiologique Serializer
+class BilanRadiologiqueSerializer(serializers.ModelSerializer):
+    radiologue = RadiologueSerializer(read_only=True)
+    radioloque_id = serializers.IntegerField(write_only=True)
+    bilan = BilanSerializer(read_only=True)
+    
+    class Meta:
+        model: BilanRadiologique 
+        fields = ('id' , 'bilan','radioloque' ,'radiologue_id')
+        extra_kwargs = {
+            'bilan' : {'read_only':True},
+            'url' : {'required':True}
+        }
+    def create(self, validated_data):
+        # extraire les donnees necessaires a la creation du bilan radiologique
+        radiologue_id = validated_data.pop('radiologue_id' , None)
+        if not radiologue_id:
+            raise serializers.ValidationError("Le radiologue est obligatoire")
+        try:
+            radiologue = Radiologue.objects.get(id=radiologue_id)
+        except Radiologue.DoesNotExist:
+            raise serializers.ValidationError("Le radiologue n'existe pas")
+        validated_data['radiologue'] = radiologue
+        return super().create(validated_data)
     

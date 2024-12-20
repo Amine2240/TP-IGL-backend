@@ -75,21 +75,19 @@ class TypeSoin(Enum):
 
 # Soin Model
 class Soin(models.Model):
-    dpi = models.ForeignKey(Dpi, on_delete=models.CASCADE, related_name="soins")
     TYPES_SOINS = [(type.value, type.name.capitalize()) for type in TypeSoin]
     type = models.CharField(
         max_length=32,
         choices=TYPES_SOINS,
         default=TypeSoin.TYPE_1.value,
     )
-    date = models.DateField(auto_now_add=True)
-    observation = models.TextField(blank=True)
-    coup = models.DecimalField(max_digits=5, decimal_places=2)
-
+    
 
 class DpiSoin(models.Model):
     dpi = models.ForeignKey(Dpi, on_delete=models.CASCADE)
     soin = models.ForeignKey(Soin, on_delete=models.CASCADE)
+    date = models.DateField(auto_now_add=True)
+    observation = models.TextField(blank=True)
 
 
 # Outil Model

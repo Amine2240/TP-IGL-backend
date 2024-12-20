@@ -1,7 +1,7 @@
 from rest_framework import status
 from rest_framework.response import Response 
 from rest_framework.decorators import api_view
-from .serializer import  SoinSerializer , DpiSerializer
+from .serializer import   DpiSerializer , DpiSoinSerializer
 from .utils import upload_image_to_cloudinary
 
 @api_view(['POST']) #decorateur pour la methode creer_patient
@@ -17,15 +17,15 @@ def creer_dpi(request):
 @api_view(['POST'])
 #ajouter soin 
 def ajouter_soin(request):
-    soin_serializer = SoinSerializer(
+    dpi_soin_serializer = DpiSoinSerializer(
         data = request.data 
     )
-    if soin_serializer.is_valid():
-        soin_serializer.save()
+    if dpi_soin_serializer.is_valid():
+        dpi_soin_serializer.save()
         return Response(
-            {"message":"Le soin a été ajouté avec succès" ,"soin":soin_serializer.data},
+            {"message":"Le soin a été ajouté avec succès" ,"soin":dpi_soin_serializer.data},
             status=status.HTTP_201_CREATED)
-    return Response(soin_serializer.errors , status=status.HTTP_400_BAD_REQUEST)
+    return Response(dpi_soin_serializer.errors , status=status.HTTP_400_BAD_REQUEST)
 
 
 @api_view(['POST'])
