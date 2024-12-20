@@ -22,6 +22,7 @@ class UtilisateurAdminForm(forms.ModelForm):
             "password",
             "nom",
             "prenom",
+            "telephone",
             "role",
             "date_naissance",
             "photo_profil",
@@ -49,7 +50,7 @@ class UtilisateurAdminForm(forms.ModelForm):
         ):
             user.password = make_password(user.password)
 
-        super().save(commit=False)
+        user.save()
 
         # Add role-specific logic after saving the user
         if user.role == "medecin":

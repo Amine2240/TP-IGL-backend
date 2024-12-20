@@ -48,7 +48,7 @@ class PatientSerializer(serializers.ModelSerializer):#serializer pour le patient
     user = UtilisateurSerializer()
     class Meta:
         model = Patient
-        fields = ('id' , 'NSS' , 'user' ,'mutuelle' )
+        fields = ('id' , 'NSS' , 'user'  )
         extra_kwargs ={
             'NSS' : {'required':True} ,   
         }

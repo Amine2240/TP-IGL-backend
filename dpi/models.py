@@ -193,7 +193,7 @@ class Examen(models.Model):
     note = models.TextField()
     traite = models.BooleanField(default=False)
     consultation = models.ForeignKey(Consultation, on_delete=models.CASCADE)
-    resultats = models.TextField(max_length=500)
+    resultats = models.TextField(max_length=500 , blank=True)
     type = models.CharField(
         max_length=32,
         choices=TYPES_BILAN,
@@ -214,7 +214,7 @@ class BilanRadiologique(models.Model):
         Radiologue, on_delete=models.CASCADE, related_name="bilans"
     )
     examen = models.OneToOneField(Examen, on_delete=models.CASCADE)
-    images_radio = models.JSONField()  # pour stocker la liste de URL (cloud)
+    images_radio = models.JSONField(blank=True)  # pour stocker la liste de URL (cloud)
 
 
 # Graphique de tendance Model
@@ -227,7 +227,7 @@ class GraphiqueTendance(models.Model):
     )
 
 
-#
+
 class Parametre(models.Model):
     nom = models.CharField(max_length=50)
 

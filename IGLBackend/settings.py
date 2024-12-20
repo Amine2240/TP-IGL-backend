@@ -58,8 +58,8 @@ cloudinary.config(
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
         "IGLBackend.authentication.CookieJWTAuthentication",
-    ),
-    "DEFAULT_PERMISSION_CLASSES": ("rest_framework.permissions.IsAuthenticated",),
+    )
+
 }
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
