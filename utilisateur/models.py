@@ -67,7 +67,7 @@ class Patient(models.Model):
     user = models.OneToOneField(
         Utilisateur, on_delete=models.CASCADE, related_name="patient"
     )
-    NSS = models.CharField(max_length=32)
+    NSS = models.CharField(max_length=32 , unique=True)
 
     def __str__(self):
         return f"Patient: {self.user.nom} {self.user.prenom}"

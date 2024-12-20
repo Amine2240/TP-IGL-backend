@@ -1,5 +1,7 @@
 from enum import Enum
-
+import qrcode
+import base64
+from io import BytesIO
 from django.core.validators import MinValueValidator, RegexValidator
 from django.db import models
 from django.utils import timezone
@@ -22,6 +24,9 @@ class Dpi(models.Model):
     patient = models.OneToOneField(
         Patient, on_delete=models.CASCADE, related_name="dossier_patient"
     )
+    contact_urgence = models.ForeignKey(
+        "ContactUrgence", on_delete=models.SET_NULL, null=True, related_name="dpis"
+    )
     hopital_initial = models.OneToOneField(
         "Hopital", on_delete=models.SET_NULL, null=True
     )
@@ -31,6 +36,48 @@ class Dpi(models.Model):
     qr_code = models.TextField(
         max_length=500, blank=True
     )  # On va le stocker sous le format base-64
+    
+    # methode pour generer un qr code pour le dpi
+    def generate_qr_code(self):
+        """Génère un QR Code pour le DPI et l'encode en Base64"""
+        # Données à encoder dans le QR Code
+        #data_to_encode = f"https://angular_site/dpi/{self.id}"  # Exemple de lien pour accéder à l'objet DPI
+        data_to_encode = f"Patient: {self.patient.id}, Hopital: {self.hopital_initial.id if self.hopital_initial else 'N/A'}"
+        
+        # Générer le QR Code
+        qr = qrcode.QRCode(
+            version=1,
+            error_correction=qrcode.constants.ERROR_CORRECT_L,
+            box_size=10,
+            border=4,
+        )
+        qr.add_data(data_to_encode)
+        qr.make(fit=True)
+        
+        # Convertir en image
+        img = qr.make_image(fill_color="black", back_color="white")
+        
+        # Sauvegarder l'image en mémoire sous forme de bytes
+        buffer = BytesIO()
+        img.save(buffer, format="PNG")
+        buffer.seek(0)
+        
+        # Encoder l'image en Base64
+        img_base64 = base64.b64encode(buffer.getvalue()).decode()
+        buffer.close()
+        
+        # Stocker le QR Code encodé en Base64 dans le champ `qr_code`
+        self.qr_code = img_base64
+        self.save()
+
+
+# Soins Enum
+class TypeSoin(Enum):
+    TYPE_1 = "type_1"
+    TYPE_2 = "type_2"
+    TYPE_3 = "type_3"
+
+
 
 
 class Mutuelle(models.Model):
@@ -38,6 +85,7 @@ class Mutuelle(models.Model):
     patient = models.ForeignKey(
         Patient, on_delete=models.CASCADE, related_name="mutuelles"
     )
+
 
 
 # Soin Model
@@ -151,6 +199,7 @@ class TypeBilan(Enum):
 
 
 # Bilan Model
+
 class Bilan(models.Model):
     TYPES_BILAN = [(type.value, type.name.capitalize()) for type in TypeBilan]
     type = models.CharField(
@@ -251,7 +300,6 @@ class ContactUrgence(models.Model):
     email = models.EmailField()
     telephone = models.CharField(
         max_length=10,
-        unique=True,
         validators=[
             RegexValidator(
                 regex=r"^\d{10}$",
