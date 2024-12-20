@@ -3,6 +3,7 @@ from enum import Enum
 from django.contrib.auth.models import AbstractUser
 from django.core.validators import RegexValidator
 from django.db import models
+from .managers import UtilisateurManager
 
 
 # Roles Enum
@@ -13,14 +14,16 @@ class RoleEnum(Enum):
     INFERMIER = "infermier"
     RADIOLOGUE = "radiologue"
     LABORANTIN = "laborantin"
+    ADMINSYSTEM = "adminsystem"
 
 
 # Utilisateur Model
 class Utilisateur(
     AbstractUser
 ):  # Pour l'authentification --> donc le mot de passe est inculu par defaut
+    objects = UtilisateurManager()
     ROLE_CHOICES = [(role.value, role.name.capitalize()) for role in RoleEnum]
-
+     
     # Additional fields
     nom = models.CharField(max_length=32)
     prenom = models.CharField(max_length=32)
@@ -35,6 +38,7 @@ class Utilisateur(
             )
         ],
     )
+    
     photo_profil = models.URLField(max_length=200, blank=True, null=True)
     role = models.CharField(
         max_length=16,
