@@ -76,7 +76,12 @@ class DpiSerializer(serializers.ModelSerializer):
 
 # serializer pour le soin
 class SoinSerializer(serializers.ModelSerializer):
-    dpi = DpiSerializer(read_only=True)
+     class Meta :
+        model = Soin 
+        fields = ('id' ,'type')
+
+     
+
 
     
 #serializer pour le soin
