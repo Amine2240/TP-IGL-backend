@@ -71,11 +71,14 @@ class Dpi(models.Model):
         self.save()
 
 
-# Soins Enum
-class TypeSoin(Enum):
-    TYPE_1 = "type_1"
-    TYPE_2 = "type_2"
-    TYPE_3 = "type_3"
+# Soin Model
+class Soin(models.Model):
+    nom = models.CharField(max_length=32)
+    type = models.CharField(max_length=32)
+
+    def __str__(self):
+        return f"{self.type}: {self.nom}"
+
 
 
 
@@ -88,15 +91,6 @@ class Mutuelle(models.Model):
 
 
 
-# Soin Model
-class Soin(models.Model):
-    dpi = models.ForeignKey(Dpi, on_delete=models.CASCADE, related_name="soins")
-    type_soin = models.CharField(max_length=32, null=True)
-
-    date = models.DateField(default=timezone.now)
-    observation = models.TextField(blank=True)
-    coup = models.DecimalField(max_digits=5, decimal_places=2)
-
 
 class SoinInfermier(models.Model):
     soin = models.ForeignKey(Soin, on_delete=models.CASCADE)
@@ -106,6 +100,9 @@ class SoinInfermier(models.Model):
 class DpiSoin(models.Model):
     dpi = models.ForeignKey(Dpi, on_delete=models.CASCADE)
     soin = models.ForeignKey(Soin, on_delete=models.CASCADE)
+    hopital = models.ForeignKey("Hopital", on_delete=models.CASCADE)
+    date = models.DateField(auto_now_add=True)
+    observation = models.TextField(blank=True)
 
 
 # Outil Model
@@ -158,6 +155,9 @@ class Prescription(models.Model):
     duree = models.DecimalField(max_digits=5, decimal_places=2, null=True)
     heure = models.TimeField(null=True)
     nombre_de_prises = models.IntegerField(validators=[MinValueValidator(1)], null=True)
+
+    def __str__(self):
+        return f"{self.nom}"
 
 
 # Ordonnance Model
