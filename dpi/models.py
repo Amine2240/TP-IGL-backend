@@ -4,15 +4,14 @@ from django.core.validators import MinValueValidator, RegexValidator
 from django.db import models
 from django.utils import timezone
 
-
 from utilisateur.models import (
     Administratif,
+    Infermier,
     Laborantin,
     Medecin,
     Patient,
     Radiologue,
     Utilisateur,
-    Infermier
 )
 
 # Create your models here.
@@ -26,26 +25,35 @@ class Dpi(models.Model):
     hopital_initial = models.OneToOneField(
         "Hopital", on_delete=models.SET_NULL, null=True
     )
-    date_creation  = models.DateField(default=timezone.now)  # automatiquement remplie lors de la creation du dpi 
+    date_creation = models.DateField(
+        default=timezone.now
+    )  # automatiquement remplie lors de la creation du dpi
     qr_code = models.TextField(
         max_length=500, blank=True
     )  # On va le stocker sous le format base-64
+
+
 class Mutuelle(models.Model):
     nom = models.CharField(max_length=100)
+    patient = models.ForeignKey(
+        Patient, on_delete=models.CASCADE, related_name="mutuelles"
+    )
 
 
 # Soin Model
 class Soin(models.Model):
     dpi = models.ForeignKey(Dpi, on_delete=models.CASCADE, related_name="soins")
-    type_soin = models.CharField(max_length=32,null=True)
- 
+    type_soin = models.CharField(max_length=32, null=True)
+
     date = models.DateField(default=timezone.now)
     observation = models.TextField(blank=True)
     coup = models.DecimalField(max_digits=5, decimal_places=2)
 
+
 class SoinInfermier(models.Model):
     soin = models.ForeignKey(Soin, on_delete=models.CASCADE)
-    infermier = models.ForeignKey(Infermier ,on_delete=models.CASCADE )
+    infermier = models.ForeignKey(Infermier, on_delete=models.CASCADE)
+
 
 class DpiSoin(models.Model):
     dpi = models.ForeignKey(Dpi, on_delete=models.CASCADE)
@@ -55,26 +63,34 @@ class DpiSoin(models.Model):
 # Outil Model
 class Outil(models.Model):
     nom = models.CharField(max_length=32)
-#Resume model
+
+
+# Resume model
 class Resume(models.Model):
+    consultation = models.ForeignKey("Consultation", on_delete=models.CASCADE)
     diagnostic = models.TextField(blank=True)
-    date_prochaine_consultation = models.DateField( null=True)
+    date_prochaine_consultation = models.DateField(null=True)
+
 
 class ResumeSymptomes(models.Model):
-    resume = models.ForeignKey(Resume, on_delete=models.CASCADE, related_name="symptomes")
+    resume = models.ForeignKey(
+        Resume, on_delete=models.CASCADE, related_name="symptomes"
+    )
     symptome = models.CharField(max_length=500)
+
 
 class ResumeMesuresPrises(models.Model):
     resume = models.ForeignKey(Resume, on_delete=models.CASCADE, related_name="mesures")
     mesure = models.CharField(max_length=500)
+
 
 # Consultation Model
 class Consultation(models.Model):
     dpi = models.ForeignKey(Dpi, on_delete=models.CASCADE, related_name="consultations")
     hopital = models.ForeignKey("Hopital", on_delete=models.CASCADE)
     date_de_consultation = models.DateField(default=timezone.now)
-    resume = models.ForeignKey(Resume,on_delete=models.CASCADE, related_name="consultations",null=True)
     heure = models.TimeField(default=timezone.now)
+
 
 class ConsultationMedecin(models.Model):
     consultation = models.ForeignKey(Consultation, on_delete=models.CASCADE)
@@ -85,15 +101,16 @@ class ConsultationMedecin(models.Model):
 class Medicament(models.Model):
     nom = models.CharField(max_length=32)
 
-#Prescription model
+
+# Prescription model
 class Prescription(models.Model):
     medicament = models.ForeignKey(Medicament, on_delete=models.CASCADE)
+    ordonnance = models.ForeignKey("Ordonnance", on_delete=models.CASCADE)
     dose = models.CharField(max_length=10)
-    duree = models.DecimalField(max_digits=5, decimal_places=2,null=True)
+    duree = models.DecimalField(max_digits=5, decimal_places=2, null=True)
     heure = models.TimeField(null=True)
-    nombre_de_prises = models.IntegerField(validators=[MinValueValidator(1)],null=True)
+    nombre_de_prises = models.IntegerField(validators=[MinValueValidator(1)], null=True)
 
-  
 
 # Ordonnance Model
 class Ordonnance(models.Model):
@@ -101,7 +118,7 @@ class Ordonnance(models.Model):
         Consultation, on_delete=models.CASCADE, related_name="ordonnances"
     )
     date_de_creation = models.DateField(default=timezone.now)
-    prescription = models.ForeignKey(Prescription, on_delete=models.CASCADE)
+
 
 # Certificat Model
 class Certificat(models.Model):
@@ -110,7 +127,7 @@ class Certificat(models.Model):
         Medecin, on_delete=models.CASCADE, related_name="certificats"
     )
     date = models.DateField(default=timezone.now)
-    contenu= models.TextField(blank=True)
+    contenu = models.TextField(blank=True)
     accorde = models.BooleanField(default=False)
 
 
@@ -164,7 +181,7 @@ class BilanRadiologique(models.Model):
     radiologue = models.ForeignKey(
         Radiologue, on_delete=models.CASCADE, related_name="bilans"
     )
-    images_radio = models.JSONField()  # pour stocker la liste de URL (cloud) 
+    images_radio = models.JSONField()  # pour stocker la liste de URL (cloud)
 
 
 # Graphique de tendance Model
@@ -175,15 +192,16 @@ class GraphiqueTendance(models.Model):
     bilan_biologique = models.OneToOneField(
         BilanBiologique, on_delete=models.CASCADE, related_name="graphiqus"
     )
-#     
+
+
+#
 class Parametre(models.Model):
     nom = models.CharField(max_length=50)
 
+
 class ParametreValeur(models.Model):
-    parametre = models.ForeignKey(
-        Parametre, on_delete=models.CASCADE)
-    bilan_biologique = models.ForeignKey(
-    BilanBiologique, on_delete=models.CASCADE)
+    parametre = models.ForeignKey(Parametre, on_delete=models.CASCADE)
+    bilan_biologique = models.ForeignKey(BilanBiologique, on_delete=models.CASCADE)
     valeur = models.CharField(max_length=100)
 
 
