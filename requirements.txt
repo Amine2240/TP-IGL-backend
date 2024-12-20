@@ -4,6 +4,7 @@ certifi==2024.8.30
 charset-normalizer==3.4.0
 cloudinary==1.41.0
 Django==5.0
+django-cloudinary-storage==0.3.0
 django-cors-headers==4.6.0
 django-stubs==5.1.1
 django-stubs-ext==5.1.1
