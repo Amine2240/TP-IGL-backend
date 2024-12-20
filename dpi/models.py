@@ -1,7 +1,8 @@
-from enum import Enum
-import qrcode
 import base64
+from enum import Enum
 from io import BytesIO
+
+import qrcode
 from django.core.validators import MinValueValidator, RegexValidator
 from django.db import models
 from django.utils import timezone
@@ -36,14 +37,14 @@ class Dpi(models.Model):
     qr_code = models.TextField(
         max_length=500, blank=True
     )  # On va le stocker sous le format base-64
-    
+
     # methode pour generer un qr code pour le dpi
     def generate_qr_code(self):
         """Génère un QR Code pour le DPI et l'encode en Base64"""
         # Données à encoder dans le QR Code
-        #data_to_encode = f"https://angular_site/dpi/{self.id}"  # Exemple de lien pour accéder à l'objet DPI
+        # data_to_encode = f"https://angular_site/dpi/{self.id}"  # Exemple de lien pour accéder à l'objet DPI
         data_to_encode = f"Patient: {self.patient.id}, Hopital: {self.hopital_initial.id if self.hopital_initial else 'N/A'}"
-        
+
         # Générer le QR Code
         qr = qrcode.QRCode(
             version=1,
@@ -53,19 +54,19 @@ class Dpi(models.Model):
         )
         qr.add_data(data_to_encode)
         qr.make(fit=True)
-        
+
         # Convertir en image
         img = qr.make_image(fill_color="black", back_color="white")
-        
+
         # Sauvegarder l'image en mémoire sous forme de bytes
         buffer = BytesIO()
         img.save(buffer, format="PNG")
         buffer.seek(0)
-        
+
         # Encoder l'image en Base64
         img_base64 = base64.b64encode(buffer.getvalue()).decode()
         buffer.close()
-        
+
         # Stocker le QR Code encodé en Base64 dans le champ `qr_code`
         self.qr_code = img_base64
         self.save()
@@ -80,16 +81,11 @@ class Soin(models.Model):
         return f"{self.type}: {self.nom}"
 
 
-
-
-
 class Mutuelle(models.Model):
     nom = models.CharField(max_length=100)
     patient = models.ForeignKey(
         Patient, on_delete=models.CASCADE, related_name="mutuelles"
     )
-
-
 
 
 class SoinInfermier(models.Model):
@@ -185,50 +181,42 @@ class ConsultationOutil(models.Model):
     outil = models.ForeignKey(Outil, on_delete=models.CASCADE)
 
 
-# Examen Model
-class Examen(models.Model):
-    note = models.TextField()
-    traite = models.BooleanField(default=False)
-    consultation = models.ForeignKey(Consultation, on_delete=models.CASCADE)
-
-
 # Bilan Enum
 class TypeBilan(Enum):
     BIOLOGIQUE = "biologique"
     RADIOLOGIQUE = "radiologique"
 
 
-# Bilan Model
-
-class Bilan(models.Model):
+# Examen Model
+class Examen(models.Model):
     TYPES_BILAN = [(type.value, type.name.capitalize()) for type in TypeBilan]
+    note = models.TextField()
+    traite = models.BooleanField(default=False)
+    consultation = models.ForeignKey(Consultation, on_delete=models.CASCADE)
+    resultats = models.TextField(max_length=500)
     type = models.CharField(
         max_length=32,
         choices=TYPES_BILAN,
-    )
-    resultats = models.TextField(max_length=500)
-    examen = models.OneToOneField(
-        Examen, on_delete=models.CASCADE, related_name="bilan"
     )
 
 
 # Bilan biologique Model
 class BilanBiologique(models.Model):
-    bilan = models.OneToOneField(
-        Bilan, on_delete=models.CASCADE, related_name="bilan_biologique"
-    )
     laborantin = models.ForeignKey(
         Laborantin, on_delete=models.CASCADE, related_name="bilans"
+    )
+    examen = models.OneToOneField(
+        Examen, on_delete=models.CASCADE, related_name="bilan"
     )
 
 
 # Bilan radiologique Model
 class BilanRadiologique(models.Model):
-    bilan = models.OneToOneField(
-        Bilan, on_delete=models.CASCADE, related_name="bilan_radiologique"
-    )
     radiologue = models.ForeignKey(
         Radiologue, on_delete=models.CASCADE, related_name="bilans"
+    )
+    examen = models.OneToOneField(
+        Examen, on_delete=models.CASCADE, related_name="bilan"
     )
     images_radio = models.JSONField()  # pour stocker la liste de URL (cloud)
 
