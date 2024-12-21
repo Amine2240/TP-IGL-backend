@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Dpi , Consultation  , ContactUrgence , Soin , Medicament ,  Examen  ,Outil  , DpiSoin , BilanRadiologique ,Mutuelle
+from .models import Dpi , Consultation ,Hopital , ContactUrgence , Soin , Medicament ,  Examen  ,Outil  , DpiSoin , BilanRadiologique ,Mutuelle
 from utilisateur.serializer import PatientSerializer , RadiologueSerializer
 from utilisateur.models import Radiologue
 import cloudinary.uploader
@@ -10,13 +10,31 @@ import cloudinary.uploader
 class ContactUrgenceSerializer(serializers.ModelSerializer):
     class Meta:
         model = ContactUrgence
-        fields = ("id", "nom", "prenom", "telephone", "email")
+        fields = (
+            "id",
+            "nom", 
+            "prenom", 
+            "telephone", 
+            "email"
+            )
 
+#hopital Serializer
+class HopitalSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Hopital 
+        fields= (
+            "id" , 
+            "nom",
+            "lieu",
+            "date_debut_service"
+        ) 
 
 class DpiSerializer(serializers.ModelSerializer):
     patient = PatientSerializer()
     contact_urgence = ContactUrgenceSerializer()
+    hopital_initial = HopitalSerializer(read_only=True)
     mutuelle= serializers.CharField(write_only=True)
+    hopital_initial_id = serializers.CharField(write_only=True)
 
     class Meta:
         model = Dpi
@@ -24,6 +42,7 @@ class DpiSerializer(serializers.ModelSerializer):
             "id",
             "patient",
             "contact_urgence",
+            "hopital_initial_id",
             "hopital_initial",
             "mutuelle",
             "qr_code",
@@ -33,9 +52,11 @@ class DpiSerializer(serializers.ModelSerializer):
         }
 
     def create(self, validated_data):
+
         # Extract patient and contact_urgence data
         patient_data = validated_data.pop("patient", None)
         contact_urgence_data = validated_data.pop("contact_urgence", None)
+        hopital_initial_id = validated_data.pop("L'hopital est obligatoire" ,None)
 
         # Validate patient data
         if not patient_data:
@@ -47,6 +68,10 @@ class DpiSerializer(serializers.ModelSerializer):
         if not contact_urgence_data:
             raise serializers.ValidationError(
                 "Les informations de contact d'urgence sont obligatoires"
+            )
+        if not hopital_initial_id :
+             raise serializers.ValidationError(
+                "L'hopital est obligatoire"
             )
 
         # Create or get the Patient object
@@ -69,9 +94,15 @@ class DpiSerializer(serializers.ModelSerializer):
             contact_urgence = ContactUrgence.objects.create(**contact_urgence_data)
         if contact_urgence.nom != contact_urgence_data.get('nom') or contact_urgence.prenom != contact_urgence_data.get('prenom') or contact_urgence.email != contact_urgence_data.get('email'):
             raise serializers.ValidationError("Le contact d'urgence existe déjà avec un autre numéro de téléphone")
+        #hopital 
+        try:
+            hopital_initial = Hopital.objects.get(id=hopital_initial_id)
+        except Hopital.DoesNotExist:
+            raise serializers.ValidationError("L'hopital que vous avez mentione n'existe pas")
         # Attach the objects to validated_data
         validated_data["patient"] = patient
         validated_data["contact_urgence"] = contact_urgence
+        validated_data["hopital_initial"] = hopital_initial 
        
 
         # Create the DPI object
@@ -92,7 +123,6 @@ class SoinSerializer(serializers.ModelSerializer):
      
 
 
-    
 #serializer pour le soin
 class DpiSoinSerializer(serializers.ModelSerializer):
     dpi = DpiSerializer(read_only=True) 
@@ -100,7 +130,14 @@ class DpiSoinSerializer(serializers.ModelSerializer):
     type = serializers.CharField(write_only=True) 
     class Meta :
         model = DpiSoin 
-        fields = ('id' , 'date' , 'observation' ,'type', 'dpi_id','dpi')
+        fields = (
+            'id' ,
+            'date' ,
+            'observation' ,
+            'type',
+            'dpi_id',
+            'dpi'
+            )
         extra_kwargs = {
             'dpi' : {'read_only':True},
             'date': {'read_only':True}
@@ -153,7 +190,13 @@ class ExamenSerializer(serializers.ModelSerializer):
    
     class Meta:
         model = Examen
-        fields = ("id", "type", "note","resultats" ,"traite")
+        fields = (
+            "id", 
+            "type", 
+            "note",
+            "resultats",
+            "traite"
+            )
         extra_kwargs = {
             "type": {"required": True},
         }
@@ -191,7 +234,13 @@ class BilanRadiologiqueSerializer(serializers.ModelSerializer):
     )
     class Meta:
         model= BilanRadiologique 
-        fields = ('id' , 'images_radio', 'examen','radiologue' ,'radiologue_id')
+        fields = (
+            'id' , 
+            'images_radio', 
+            'examen',
+            'radiologue' ,
+            'radiologue_id'
+            )
 
     def create(self, validated_data):
         # extraire les donnees necessaires a la creation du bilan radiologique

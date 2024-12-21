@@ -62,7 +62,10 @@ def ajouter_Bilan_radiologique(request , pk_examen ):
     ) 
     if serializer_bilan_radiologique.is_valid():
         bilan=serializer_bilan_radiologique.save()
-        return Response({"Message":"Le bilan a été ajouté avec succès" ,"Bilan":bilan}, status=status.HTTP_200_OK)
+        return Response(
+             {"Message":"Le bilan a été ajouté avec succès" ,"Bilan":bilan},
+               status=status.HTTP_200_OK
+               )
     return Response(serializer_bilan_radiologique.errors , status=status.HTTP_400_BAD_REQUEST)
         
    
