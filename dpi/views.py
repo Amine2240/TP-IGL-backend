@@ -1,9 +1,11 @@
 from rest_framework import status
 from rest_framework.response import Response 
 from rest_framework.decorators import api_view 
-from .serializer import   DpiSerializer , DpiSoinSerializer ,BilanRadiologiqueSerializer , ExamenSerializer
-from .models import Examen
+from .serializer import   DpiSerializer , DpiSoinSerializer ,BilanRadiologiqueSerializer , ExamenSerializer ,HospitalisationSerializer
+from .models import Examen , Administratif
 from django.forms.models import model_to_dict
+from IGLBackend.authentication import CookieJWTAuthentication
+from rest_framework.exceptions import AuthenticationFailed
 
 @api_view(['POST']) #decorateur pour la methode creer_patient
 def creer_dpi(request):
@@ -69,6 +71,33 @@ def ajouter_Bilan_radiologique(request , pk_examen ):
     return Response(serializer_bilan_radiologique.errors , status=status.HTTP_400_BAD_REQUEST)
         
    
+@api_view(['POST'])
+#creer hospitalisation
+def creer_hospitalisation(request , pk_patient):
+    auth = CookieJWTAuthentication()
+
+    try:
+            # Decode the token
+            user, validated_token = auth.authenticate(request)
+            if not user:
+                raise AuthenticationFailed("Invalid token or user not found.")
+
+    except AuthenticationFailed as e:
+            return Response({"error": str(e)}, status=401)
     
-
-
+    data={}
+    print(request.user)
+    data = request.data
+    data['patient_id'] = str(pk_patient)
+    data['creer_par_id']  = str(Administratif.objects.get(user_id = user.id).id)
+    print(data['creer_par_id'])
+    hospitalisation_serializer = HospitalisationSerializer(
+        data = data
+    )
+    if hospitalisation_serializer.is_valid():
+        hospitalisation_serializer.save()
+        return Response(
+            {"message":"L'hospitalisation a été créée avec succès" ,"hospitalisation":hospitalisation_serializer.data},
+            status=status.HTTP_201_CREATED
+        )
+    return Response(hospitalisation_serializer.errors , status=status.HTTP_400_BAD_REQUEST)

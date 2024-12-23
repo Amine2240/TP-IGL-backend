@@ -1,7 +1,7 @@
 from rest_framework import serializers
-from .models import Dpi , Consultation ,Hopital , ContactUrgence , Soin , Medicament ,  Examen  ,Outil  , DpiSoin , BilanRadiologique ,Mutuelle
-from utilisateur.serializer import PatientSerializer , RadiologueSerializer
-from utilisateur.models import Radiologue
+from .models import Dpi , Consultation ,Hopital , ContactUrgence , Soin , Medicament ,  Examen  ,Outil  , DpiSoin , BilanRadiologique ,Mutuelle , Hospitalisation
+from utilisateur.serializer import PatientSerializer , RadiologueSerializer , AdministratifSerializer
+from utilisateur.models import Radiologue , Administratif ,Patient
 import cloudinary.uploader
 
 
@@ -268,3 +268,45 @@ class BilanRadiologiqueSerializer(serializers.ModelSerializer):
         validated_data['images_radio'] = urls
         return super().create(validated_data)
     
+
+#Hospitalisation serializer
+class HospitalisationSerializer(serializers.ModelSerializer):
+    patient = PatientSerializer(read_only=True)
+    hopital = HopitalSerializer(read_only=True)
+    cree_par = AdministratifSerializer(read_only=True)
+    creer_par_id = serializers.CharField(write_only=True)
+    patient_id = serializers.CharField(write_only=True)
+    hopital_id = serializers.CharField(write_only=True)
+    date_sortie = serializers.DateTimeField(read_only=True)
+    class Meta :
+        model = Hospitalisation 
+        fields = ('id' , 'date_entree' ,'date_sortie' , 'patient','patient_id','creer_par_id','cree_par','hopital_id','hopital')
+        extra_kwargs = {
+            'date_sortie' : {'read_only':True},  
+            }
+    def create(self, validated_data):
+        # extraire les donnees necessaires a la creation de l'hospitalisation
+        creer_par_id = validated_data.pop('creer_par_id' , None)
+        hopital_id = validated_data.pop('hopital_id' , None)
+        patient_id = validated_data.pop('patient_id' , None)
+
+        if not hopital_id:
+            raise serializers.ValidationError("L'hopital est obligatoire")
+        try:
+            cree_par = Administratif.objects.get(id=creer_par_id)
+        except Administratif.DoesNotExist:
+            raise serializers.ValidationError("L'administratif n'existe pas")
+        try:
+            hopital = Hopital.objects.get(id=hopital_id)
+        except Hopital.DoesNotExist:
+            raise serializers.ValidationError("L'hopital n'existe pas")
+        try:
+            patient = Patient.objects.get(id=patient_id)
+        except Patient.DoesNotExist:
+            raise serializers.ValidationError("Le patient n'existe pas")
+        
+        validated_data['cree_par'] = cree_par
+        validated_data['hopital'] = hopital
+        validated_data['patient'] = patient
+        return super().create(validated_data)
+        
