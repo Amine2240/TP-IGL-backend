@@ -3,7 +3,7 @@ import string
 import bcrypt
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
-from .models import Utilisateur ,Patient  , Radiologue ,Administratif
+from .models import Utilisateur ,Patient  , Radiologue ,Administratif ,Infermier
 Utilisateur = get_user_model()
 #serializer pour l'utilisateur
 class UtilisateurSerializer(serializers.ModelSerializer):#serializer pour l'utilisateur 
@@ -77,4 +77,11 @@ class AdministratifSerializer(serializers.ModelSerializer):
     user = UtilisateurSerializer()
     class Meta:
         model = Administratif
+        fields =('id','user')
+
+#Infermier serializer 
+class InfermierSerializer(serializers.ModelSerializer):
+    user = UtilisateurSerializer()
+    class Meta:
+        model = Infermier
         fields =('id','user')

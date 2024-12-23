@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from .models import Dpi , Consultation ,Hopital , ContactUrgence , Soin , Medicament ,  Examen  ,Outil  , DpiSoin , BilanRadiologique ,Mutuelle , Hospitalisation
-from utilisateur.serializer import PatientSerializer , RadiologueSerializer , AdministratifSerializer
-from utilisateur.models import Radiologue , Administratif ,Patient
+from utilisateur.serializer import PatientSerializer , RadiologueSerializer , AdministratifSerializer  , InfermierSerializer
+from utilisateur.models import Radiologue , Administratif ,Patient ,Infermier
 import cloudinary.uploader
 
 
@@ -34,7 +34,7 @@ class DpiSerializer(serializers.ModelSerializer):
     contact_urgence = ContactUrgenceSerializer()
     hopital_initial = HopitalSerializer(read_only=True)
     mutuelle= serializers.CharField(write_only=True)
-    hopital_initial_id = serializers.CharField(write_only=True)
+    hopital_initial_id = serializers.IntegerField(write_only=True)
 
     class Meta:
         model = Dpi
@@ -56,7 +56,7 @@ class DpiSerializer(serializers.ModelSerializer):
         # Extract patient and contact_urgence data
         patient_data = validated_data.pop("patient", None)
         contact_urgence_data = validated_data.pop("contact_urgence", None)
-        hopital_initial_id = validated_data.pop("L'hopital est obligatoire" ,None)
+        hopital_initial_id = validated_data.pop("hopital_initial_id" ,None)
 
         # Validate patient data
         if not patient_data:
@@ -128,6 +128,11 @@ class DpiSoinSerializer(serializers.ModelSerializer):
     dpi = DpiSerializer(read_only=True) 
     dpi_id = serializers.IntegerField(write_only=True)
     type = serializers.CharField(write_only=True) 
+    infermier_id = serializers.IntegerField(write_only=True)
+    hopital = HopitalSerializer(read_only=True)
+    hopital_id = serializers.IntegerField(write_only=True)
+    infermier = InfermierSerializer(read_only=True)
+    nom = serializers.CharField(write_only=True)
     class Meta :
         model = DpiSoin 
         fields = (
@@ -135,8 +140,13 @@ class DpiSoinSerializer(serializers.ModelSerializer):
             'date' ,
             'observation' ,
             'type',
+            'nom' ,
             'dpi_id',
-            'dpi'
+            'dpi',
+            'infermier',
+            'infermier_id',
+            'hopital_id',
+            'hopital'
             )
         extra_kwargs = {
             'dpi' : {'read_only':True},
@@ -148,8 +158,12 @@ class DpiSoinSerializer(serializers.ModelSerializer):
         # extraire les donnees necessaires a la creation du soin
         dpi_id = validated_data.pop('dpi_id' , None)
         type = validated_data.pop('type' , None)
-
+        infermier_id = validated_data.pop('infermier_id' ,None)
+        hopital_id = validated_data.pop('hopital_id' ,None)
+        nom = validated_data.pop('nom' , None)
         # verifier si le DPI existe
+        if not nom :
+            raise serializers.ValidationError("Le nom du soin est obligatoire")
         if not type:
             raise serializers.ValidationError("Le type du soin est obligatoire")
         if not dpi_id:
@@ -158,12 +172,26 @@ class DpiSoinSerializer(serializers.ModelSerializer):
             dpi = Dpi.objects.get(id=dpi_id)
         except Dpi.DoesNotExist:
             raise serializers.ValidationError("Le DPI n'existe pas")
+        if not infermier_id :
+            raise serializers.ValidationError("Les information de l'infermier est obligatoire")
         try :
-            soin = Soin.objects.get( type = type) 
+            infermier = Infermier.objects.get(id = infermier_id)
+        except Infermier.DoesNotExist:
+            raise serializers.ValidationError("L'infermier n'existe pas")
+        if not hopital_id :
+            raise serializers.ValidationError("L'hopital est obligatoire")
+        try:
+            hopital = Hopital.objects.get(id=hopital_id)
+        except Hopital.DoesNotExist :
+            raise serializers.ValidationError("L'hopital n'existe pas")
+        try :
+            soin = Soin.objects.get(nom=nom , type = type) 
         except Soin.DoesNotExist:
-             soin = Soin.objects.create(type=type)
+             soin = Soin.objects.create(nom= nom ,type=type)
         validated_data['soin'] = soin
         validated_data['dpi'] = dpi
+        validated_data['infermier'] = infermier
+        validated_data['hopital'] = hopital 
         return super().create(validated_data)
 
 

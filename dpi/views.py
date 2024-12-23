@@ -1,11 +1,13 @@
+from django.forms import ValidationError
 from rest_framework import status
 from rest_framework.response import Response 
 from rest_framework.decorators import api_view 
 from .serializer import   DpiSerializer , DpiSoinSerializer ,BilanRadiologiqueSerializer , ExamenSerializer ,HospitalisationSerializer
-from .models import Examen , Administratif
+from .models import Examen 
+from utilisateur.models import Administratif , Radiologue , Infermier
 from django.forms.models import model_to_dict
-from IGLBackend.authentication import CookieJWTAuthentication
 from rest_framework.exceptions import AuthenticationFailed
+from .utils import maj_examen , decode_token
 
 @api_view(['POST']) #decorateur pour la methode creer_patient
 def creer_dpi(request):
@@ -20,8 +22,21 @@ def creer_dpi(request):
 @api_view(['POST'])
 #ajouter soin 
 def ajouter_soin(request):
+    
+    try:
+           user_id = decode_token(request=request)
+    except AuthenticationFailed as e:
+            return Response({"error": str(e)}, status=401)
+    print(user_id)
+    data ={}
+    data = request.data.copy()
+    data.update({
+          "infermier_id" :str(Infermier.objects.get(user_id=user_id).id)
+    })
+    print(data)
+
     dpi_soin_serializer = DpiSoinSerializer(
-        data = request.data 
+        data = data
     )
     if dpi_soin_serializer.is_valid():
         dpi_soin_serializer.save()
@@ -34,30 +49,23 @@ def ajouter_soin(request):
 @api_view(['POST'])
 #ajouter bilan radiologique 
 def ajouter_Bilan_radiologique(request , pk_examen ):
-   
     try:
-        examen = Examen.objects.get(id= pk_examen)
-    except Examen.DoesNotExist: 
-        return Response(
-             {"ERREUR":"EXAMEN N'EXISTE PAS"}, status=status.HTTP_404_NOT_FOUND
-        )
+           user_id = decode_token(request=request)
+    except AuthenticationFailed as e:
+            return Response({"error": str(e)}, status=401)
     
-    resultats = request.data.get('examen[resultats]')
-    if not resultats :
-         return Response(
-              {"Erreur":"Les resultats d'examen sont obligatoire"} , status=status.HTTP_400_BAD_REQUEST
-            )
-    
-    examen.resultats = resultats 
-    examen.traite = True
-    examen.save()
-    data = {}
-    data['radiologue_id'] = request.data.get('radiologue_id')
+    try:
+        examen = maj_examen(pk_examen=pk_examen , resultats=request.data.get('examen[resultats]'))
+    except ValidationError as e :
+        return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+    except Examen.DoesNotExist:
+        return Response({"error": "Examen n'existe pas."}, status=status.HTTP_404_NOT_FOUND) 
 
-    # Retrieve all uploaded files for the 'images_radio' key
-    data['images_radio'] = request.FILES.getlist('images_radio')
-
-    data['examen'] = model_to_dict(examen)
+    data = {
+        "examen" : model_to_dict(examen) ,
+        "radiologue_id" :Radiologue.objects.get(user_id=user_id).id,
+        "images_radio" : request.FILES.getlist('images_radio'),
+    }
 
     serializer_bilan_radiologique =  BilanRadiologiqueSerializer (
         data= data,
@@ -74,23 +82,18 @@ def ajouter_Bilan_radiologique(request , pk_examen ):
 @api_view(['POST'])
 #creer hospitalisation
 def creer_hospitalisation(request , pk_patient):
-    auth = CookieJWTAuthentication()
-
+   
     try:
-            # Decode the token
-            user, validated_token = auth.authenticate(request)
-            if not user:
-                raise AuthenticationFailed("Invalid token or user not found.")
-
+           user_id = decode_token(request=request)
     except AuthenticationFailed as e:
             return Response({"error": str(e)}, status=401)
     
     data={}
-    print(request.user)
-    data = request.data
-    data['patient_id'] = str(pk_patient)
-    data['creer_par_id']  = str(Administratif.objects.get(user_id = user.id).id)
-    print(data['creer_par_id'])
+    data = request.data.copy()
+    data.update({
+    "patient_id": pk_patient, 
+    "creer_par_id": Administratif.objects.get(user_id=user_id).id 
+    })
     hospitalisation_serializer = HospitalisationSerializer(
         data = data
     )

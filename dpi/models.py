@@ -99,6 +99,7 @@ class DpiSoin(models.Model):
     hopital = models.ForeignKey("Hopital", on_delete=models.CASCADE)
     date = models.DateField(auto_now_add=True)
     observation = models.TextField(blank=True)
+    infermier = models.ForeignKey(Infermier, on_delete=models.CASCADE)
 
 
 # Outil Model
