@@ -73,6 +73,17 @@ MIDDLEWARE = [
     "django.middleware.common.CommonMiddleware",
 ]
 
+# Email configs
+
+# EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+
+EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+EMAIL_HOST = "smtp.gmail.com"
+EMAIL_PORT = config("EMAIL_PORT")
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = config("EMAIL_HOST_USER")
+EMAIL_HOST_PASSWORD = config("EMAIL_HOST_PASSWORD")
+
 CORS_ALLOW_ALL_ORIGINS = True
 
 ROOT_URLCONF = "IGLBackend.urls"
