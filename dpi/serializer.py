@@ -1,8 +1,21 @@
+from django.db.models.expressions import fields
 from rest_framework import serializers
 
+from utilisateur.models import Medecin, Utilisateur
 from utilisateur.serializer import PatientSerializer
 
-from .models import Consultation, ContactUrgence, Dpi, Examen, Medicament, Outil, Soin
+from .models import (
+    Consultation,
+    ConsultationMedecin,
+    ContactUrgence,
+    Dpi,
+    Examen,
+    Medicament,
+    Ordonnance,
+    Outil,
+    Prescription,
+    Soin,
+)
 
 
 # contact_urgence Serializer
@@ -104,6 +117,7 @@ class MedicamentSerializer(serializers.ModelSerializer):
     class Meta:
         model = Medicament
         fields = ("id", "nom")
+        extra_kwargs = {"id": {"read_only": True}}
 
     def create(self, validated_data):
         nom = validated_data.pop("nom", None)
@@ -119,14 +133,110 @@ class MedicamentSerializer(serializers.ModelSerializer):
 
 # Examen Serializer
 class ExamenSerializer(serializers.ModelSerializer):
-    consultation_id = serializers.IntegerField(write_only=True)
-
     class Meta:
         model = Examen
-        fields = ("id", "type", "note", "traite", "consultation_id")
-        extra_kwargs = {
-            "type": {"required": True},
-        }
+        fields = ["id", "type", "note", "traite", "resultats"]
+        extra_kwargs = {"id": {"read_only": True}}
+
+
+class PrescriptionSerializer(serializers.ModelSerializer):
+    medicament = MedicamentSerializer()
+
+    class Meta:
+        model = Prescription
+        fields = ["id", "medicament", "dose", "duree", "heure", "nombre_de_prises"]
+        extra_kwargs = {"id": {"read_only": True}}
+
+
+class OrdonnanceSerializer(serializers.ModelSerializer):
+    prescriptions = PrescriptionSerializer(many=True)
+
+    class Meta:
+        model = Ordonnance
+        fields = ["id", "date_de_creation", "prescriptions"]
+        extra_kwargs = {"id": {"read_only": True}}
+
+
+class ConsultationMedecinSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ConsultationMedecin
+        fields = ["id", "consultation", "medecin"]
+
+
+class UserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Utilisateur
+        fields = [
+            "id",
+            "username",
+            "nom",
+            "prenom",
+            "email",
+            "telephone",
+            "date_naissance",
+        ]
+
+
+class MedecinSerializer(serializers.ModelSerializer):
+    user = UserSerializer(read_only=True)
+
+    class Meta:
+        model = Medecin
+        fields = ["id", "user", "specialite"]
+
+
+class ConsultationSerializer(serializers.ModelSerializer):
+    ordonnances = OrdonnanceSerializer(many=True, write_only=True)
+    examens = ExamenSerializer(many=True, write_only=True)
+
+    class Meta:
+        model = Consultation
+        fields = [
+            "id",
+            "dpi",
+            "hopital",
+            "date_de_consultation",
+            "heure",
+            "ordonnances",
+            "examens",
+            "medecins",
+        ]
+        extra_kwargs = {"id": {"read_only": True}}
+
+    def create(self, validated_data):
+        ordonnances_data = validated_data.pop("ordonnances", [])
+        examens_data = validated_data.pop("examens", [])
+        medecins_data = validated_data.pop("medecins", [])
+
+        request = self.context.get("request")
+        user = request.user
+
+        medecin_principal = Medecin.objects.get(user=user)
+
+        consultation = Consultation.objects.create(
+            medecin_principal=medecin_principal, **validated_data
+        )
+        for ordonnance_data in ordonnances_data:
+            prescriptions_data = ordonnance_data.pop("prescriptions", [])
+            ordonnance = Ordonnance.objects.create(
+                consultation=consultation, **ordonnance_data
+            )
+            for prescription_data in prescriptions_data:
+                medicament_data = prescription_data.pop("medicament")
+                medicament, _ = Medicament.objects.get_or_create(**medicament_data)
+                Prescription.objects.create(
+                    ordonnance=ordonnance, medicament=medicament, **prescription_data
+                )
+
+        # Create Examens and medecins_consultations
+        for examen_data in examens_data:
+            Examen.objects.create(consultation=consultation, **examen_data)
+        for medecin in medecins_data:
+            ConsultationMedecin.objects.create(
+                consultation=consultation, medecin=medecin
+            )
+
+        return consultation
 
 
 # Outil Serializer
