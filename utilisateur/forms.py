@@ -23,6 +23,7 @@ class UtilisateurAdminForm(forms.ModelForm):
             "nom",
             "prenom",
             "role",
+            "telephone",
             "date_naissance",
             "photo_profil",
             "is_superuser",
@@ -49,8 +50,9 @@ class UtilisateurAdminForm(forms.ModelForm):
         ):
             user.password = make_password(user.password)
 
-        super().save(commit=False)
+        user.save()
 
+        """
         # Add role-specific logic after saving the user
         if user.role == "medecin":
             Medecin.objects.get_or_create(user=user)
@@ -62,5 +64,5 @@ class UtilisateurAdminForm(forms.ModelForm):
             Radiologue.objects.get_or_create(user=user)
         elif user.role == "administratif":
             Administratif.objects.get_or_create(user=user)
-
+"""
         return user
