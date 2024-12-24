@@ -18,14 +18,13 @@ class Login(APIView):
         username = request.data.get("username")
         password = request.data.get("password")
 
-        user = Utilisateur.objects.filter(username=username).first()
-
         if not username or not password:
             return Response(
                 {"error": "Username and password are required"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
+        user = Utilisateur.objects.filter(username=username).first()
         if not user or not user.check_password(password):
             raise AuthenticationFailed("Incorrect username or password")
 
