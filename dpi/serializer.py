@@ -14,6 +14,9 @@ from .models import (
     Ordonnance,
     Outil,
     Prescription,
+    Resume,
+    ResumeMesuresPrises,
+    ResumeSymptomes,
     Soin,
 )
 
@@ -185,9 +188,40 @@ class MedecinSerializer(serializers.ModelSerializer):
         fields = ["id", "user", "specialite"]
 
 
+class ResumeSymptomeSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ResumeSymptomes
+        fields = ["id", "symptome"]
+        extra_kwargs = {"id": {"read_only": True}}
+
+
+class ResumeMesurePriseSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ResumeMesuresPrises
+        fields = ["id", "mesure"]
+        extra_kwargs = {"id": {"read_only": True}}
+
+
+class ResumeSerializer(serializers.ModelSerializer):
+    symptomes = ResumeSymptomeSerializer(many=True, write_only=True)
+    mesures = ResumeMesurePriseSerializer(many=True, write_only=True)
+
+    class Meta:
+        model = Resume
+        fields = [
+            "id",
+            "diagnostic",
+            "date_prochaine_consultation",
+            "symptomes",
+            "mesures",
+        ]
+        extra_kwargs = {"id": {"read_only": True}}
+
+
 class ConsultationSerializer(serializers.ModelSerializer):
     ordonnances = OrdonnanceSerializer(many=True, write_only=True)
     examens = ExamenSerializer(many=True, write_only=True)
+    resumes = ResumeSerializer(many=True, write_only=True)
 
     class Meta:
         model = Consultation
@@ -200,6 +234,7 @@ class ConsultationSerializer(serializers.ModelSerializer):
             "ordonnances",
             "examens",
             "medecins",
+            "resumes",
         ]
         extra_kwargs = {"id": {"read_only": True}}
 
@@ -207,6 +242,7 @@ class ConsultationSerializer(serializers.ModelSerializer):
         ordonnances_data = validated_data.pop("ordonnances", [])
         examens_data = validated_data.pop("examens", [])
         medecins_data = validated_data.pop("medecins", [])
+        resumes_data = validated_data.pop("resumes", [])
 
         request = self.context.get("request")
         user = request.user
@@ -216,6 +252,7 @@ class ConsultationSerializer(serializers.ModelSerializer):
         consultation = Consultation.objects.create(
             medecin_principal=medecin_principal, **validated_data
         )
+        # creating ordonnances
         for ordonnance_data in ordonnances_data:
             prescriptions_data = ordonnance_data.pop("prescriptions", [])
             ordonnance = Ordonnance.objects.create(
@@ -227,6 +264,15 @@ class ConsultationSerializer(serializers.ModelSerializer):
                 Prescription.objects.create(
                     ordonnance=ordonnance, medicament=medicament, **prescription_data
                 )
+        # creating resumes
+        for resume_data in resumes_data:
+            symptomes_data = resume_data.pop("symptomes", [])
+            mesures_data = resume_data.pop("mesures", [])
+            resume = Resume.objects.create(consultation=consultation, **resume_data)
+            for symptome_data in symptomes_data:
+                ResumeSymptomes.objects.create(resume=resume, **symptome_data)
+            for mesure_data in mesures_data:
+                ResumeMesuresPrises.objects.create(resume=resume, **mesure_data)
 
         # Create Examens and medecins_consultations
         for examen_data in examens_data:
