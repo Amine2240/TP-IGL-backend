@@ -22,4 +22,5 @@ class UtilisateurManager(BaseUserManager):
         if not extra_fields.get("date_naissance"):
             raise ValueError(_("The date_naissance field must be set for superusers"))
 
+        extra_fields.setdefault("role", "adminsystem")
         return self.create_user(username, email, password, **extra_fields)
