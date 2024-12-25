@@ -1,11 +1,12 @@
+from django.shortcuts import get_object_or_404
 from rest_framework import generics, status
 from rest_framework.decorators import api_view
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from dpi.models import Examen
-from utilisateur.models import Medecin
+from dpi.models import BilanBiologique, Examen
+from utilisateur.models import Laborantin, Medecin
 
 from .serializer import (
     ConsultationSerializer,
@@ -93,21 +94,53 @@ class ExamenListView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        non_treated_exams = Examen.objects.filter(traite=False)
-        serializer = ExamenSerializer(non_treated_exams, many=True)
-        if not serializer.is_valid:
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        # getting params
+        traite_param = request.query_params.get("traite")
+        type_param = request.query_params.get("type")
+
+        if traite_param is not None:
+            if traite_param.lower() == "true":
+                traite = True
+            elif traite_param.lower() == "false":
+                traite = False
+            else:
+                return Response(
+                    {"error": "'traite' must be 'true' or 'false'"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+        else:
+            traite = None
+
+        allowed_types = ["radiologique", "biologique"]
+        if type_param is not None:
+            if type_param.lower() not in allowed_types:
+                return Response(
+                    {"error": "Exam type can be either 'radiologique' or 'biologique'"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+        else:
+            return Response(
+                {"error": "Exam type should be provided"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        # Filtering queryset based on params
+        exams = Examen.objects.all()
+        if traite is not None:
+            exams = exams.filter(traite=traite)
+        if type_param:
+            exams = exams.filter(type=type_param.lower())
 
         # Customizing the output data --> this can be changed base on the frontend need
         # just gimme a call !
         data = []
-        for exam in non_treated_exams:
+        for exam in exams:
             data.append(
                 {
                     "id": exam.id,
                     "type": exam.type,
                     "traite": exam.traite,
                     "note": exam.note,
+                    "resultats": exam.resultats,
                     "doctor": {
                         "id": exam.consultation.medecin_principal.id,
                         "nom": exam.consultation.medecin_principal.user.nom,
@@ -126,5 +159,55 @@ class ExamenListView(APIView):
 
 # Listing our brave doctors
 class MedecinListView(generics.ListAPIView):
+    permission_classes = [IsAuthenticated]
     queryset = Medecin.objects.all()
     serializer_class = MedecinSerializer
+
+
+class CreateBilanBiologiqueView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        examen_id = request.data.get("examen_id")
+
+        user = request.user
+        if not Laborantin.objects.filter(user=user).exists():
+            return Response(
+                {"detail": "You do not have permission to perform this action."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        laborantin_id = request.user.laborantin.id
+        examen = get_object_or_404(Examen, id=examen_id)
+
+        # validating exams types
+        if examen.type != "biologique":
+            return Response(
+                {"error": "This exam is not 'biologique'."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        if examen.traite:
+            return Response(
+                {"error": "This exam has already been treated."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Checcking if the a bilan has already been created for this exam
+        if hasattr(examen, "bilanbiologique"):
+            return Response(
+                {"error": "A Bilan Biologique already exists for this exam."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        bilan_biologique = BilanBiologique.objects.create(
+            laborantin_id=laborantin_id, examen=examen
+        )
+        return Response(
+            {
+                "message": "Bilan Biologique successfully created.",
+                "bilan_biologique_id": bilan_biologique.id,
+                "laborantin_id": laborantin_id,
+                "examen_id": examen_id,
+            },
+            status=status.HTTP_201_CREATED,
+        )
