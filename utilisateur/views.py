@@ -68,6 +68,7 @@ class UserInfoView(APIView):
             "role": user.role,
             "photoProfil": user.photo_profil,
             "telephone": user.telephone,
+            "adresse": user.adresse,
             "dateDeNaissance": user.date_naissance,
         }
 
@@ -90,6 +91,8 @@ class ListPatientsView(APIView):
                     "email": patient.user.email,
                     "photoProfil": patient.user.photo_profil,
                     "telephone": patient.user.telephone,
+                    "dateDeNaissance": patient.user.date_naissance,
+                    "adresse": patient.user.adresse,
                     "NSS": patient.NSS,
                     "dpiId": patient.dossier_patient.id,
                     "qrCode": patient.dossier_patient.qr_code,

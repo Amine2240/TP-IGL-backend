@@ -5,8 +5,8 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from dpi.models import BilanBiologique, Examen
-from utilisateur.models import Laborantin, Medecin
+from dpi.models import BilanBiologique, Dpi, Examen
+from utilisateur.models import Laborantin, Medecin, Patient
 
 from .serializer import (
     ConsultationSerializer,
@@ -202,4 +202,48 @@ class CreateBilanBiologiqueView(APIView):
                 "examen_id": examen_id,
             },
             status=status.HTTP_201_CREATED,
+        )
+
+
+class DpiDetailView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, patient_id):
+        try:
+            patient = Patient.objects.get(id=patient_id)
+        except Patient.DoesNotExist:
+            return Response(
+                {"error": "Patient not found"}, status=status.HTTP_404_NOT_FOUND
+            )
+        try:
+            dpi = Dpi.objects.get(patient=patient)
+        except Dpi.DoesNotExist:
+            return Response(
+                {"error": "Dossier Patient (Dpi) not found for this patient"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        contact_urgence = dpi.contact_urgence
+        mutuelle = patient.mutuelles.all()[0].nom
+
+        dpi_data = {
+            "dpiId": dpi.id,
+            "dateCreation": dpi.date_creation,
+            "nom": patient.user.nom,
+            "prenom": patient.user.prenom,
+            "dateDeNaissance": patient.user.date_naissance,
+            "adresse": patient.user.adresse,
+            "NSS": patient.NSS,
+            "telephone": patient.user.telephone,
+            "mutuelle": mutuelle,
+            "contact_urgence": {
+                "nom": contact_urgence.nom,
+                "prenom": contact_urgence.prenom,
+                "telephone": contact_urgence.telephone,
+                "email": contact_urgence.email,
+            },
+        }
+        return Response(
+            dpi_data,
+            status=status.HTTP_200_OK,
         )

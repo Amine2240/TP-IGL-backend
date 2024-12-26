@@ -299,6 +299,9 @@ class ContactUrgence(models.Model):
         ],
     )
 
+    def __str__(self):
+        return f" {self.nom} {self.prenom}"
+
 
 class Decompte(models.Model):
     tarif = models.DecimalField(max_digits=6, decimal_places=2)

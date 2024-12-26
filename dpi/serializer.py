@@ -7,6 +7,7 @@ from utilisateur.serializer import PatientSerializer
 from .models import (
     Consultation,
     ConsultationMedecin,
+    ConsultationOutil,
     ContactUrgence,
     Dpi,
     Examen,
@@ -196,10 +197,19 @@ class ResumeSerializer(serializers.ModelSerializer):
         extra_kwargs = {"id": {"read_only": True}}
 
 
+# Outil Serializer
+class OutilSerializer(serializers.ModelSerializer):
+    class Meta:
+        model: Outil
+        fields = ("id", "nom")
+        extra_kwargs = {"nom": {"required": True}}
+
+
 class ConsultationSerializer(serializers.ModelSerializer):
     ordonnances = OrdonnanceSerializer(many=True, write_only=True)
     examens = ExamenSerializer(many=True, write_only=True)
     resumes = ResumeSerializer(many=True, write_only=True)
+    outils = OutilSerializer(many=True, write_only=True)
 
     class Meta:
         model = Consultation
@@ -213,6 +223,7 @@ class ConsultationSerializer(serializers.ModelSerializer):
             "examens",
             "medecins",
             "resumes",
+            "outils",
         ]
         extra_kwargs = {"id": {"read_only": True}}
 
@@ -221,6 +232,7 @@ class ConsultationSerializer(serializers.ModelSerializer):
         examens_data = validated_data.pop("examens", [])
         medecins_data = validated_data.pop("medecins", [])
         resumes_data = validated_data.pop("resumes", [])
+        outils_data = validated_data.pop("outils", [])
 
         request = self.context.get("request")
         user = request.user
@@ -252,20 +264,13 @@ class ConsultationSerializer(serializers.ModelSerializer):
             for mesure_data in mesures_data:
                 ResumeMesuresPrises.objects.create(resume=resume, **mesure_data)
 
-        # Create Examens and medecins_consultations
+        # Create Examens and medecins_consultations as well as outils_consultation
         for examen_data in examens_data:
             Examen.objects.create(consultation=consultation, **examen_data)
         for medecin in medecins_data:
             ConsultationMedecin.objects.create(
                 consultation=consultation, medecin=medecin
             )
-
+        for outil in outils_data:
+            ConsultationOutil.objects.create(consultation=consultation, outil=outil)
         return consultation
-
-
-# Outil Serializer
-class OutilSerializer(serializers.ModelSerializer):
-    class Meta:
-        model: Outil
-        fields = ("id", "nom")
-        extra_kwargs = {"nom": {"required": True}}

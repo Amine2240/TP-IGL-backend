@@ -26,6 +26,7 @@ class UtilisateurAdminForm(forms.ModelForm):
             "nom",
             "prenom",
             "role",
+            "adresse",
             "telephone",
             "date_naissance",
             "photo_profil",
