@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Dpi , Consultation ,Hopital , ContactUrgence , Soin , Medicament ,  Examen  ,Outil  , DpiSoin , BilanRadiologique ,Mutuelle , Hospitalisation
+from .models import Dpi , Consultation ,Hopital , ContactUrgence , Soin , Medicament ,  Examen  ,Outil  , DpiSoin , BilanRadiologique ,Mutuelle , Hospitalisation ,Antecedant
 from utilisateur.serializer import PatientSerializer , RadiologueSerializer , AdministratifSerializer  , InfermierSerializer
 from utilisateur.models import Radiologue , Administratif ,Patient ,Infermier
 import cloudinary.uploader
@@ -28,13 +28,22 @@ class HopitalSerializer(serializers.ModelSerializer):
             "lieu",
             "date_debut_service"
         ) 
+#serializer pour les antecedants
+class AntecedantSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Antecedant
+        fields = ('id' , 'nom' , 'type' )
 
+
+#dpi serializer
 class DpiSerializer(serializers.ModelSerializer):
     patient = PatientSerializer()
     contact_urgence = ContactUrgenceSerializer()
     hopital_initial = HopitalSerializer(read_only=True)
     mutuelle= serializers.CharField(write_only=True)
     hopital_initial_id = serializers.IntegerField(write_only=True)
+    antecedants= AntecedantSerializer(many=True )
+    qr_code = serializers.CharField(read_only=True)
 
     class Meta:
         model = Dpi
@@ -46,6 +55,7 @@ class DpiSerializer(serializers.ModelSerializer):
             "hopital_initial",
             "mutuelle",
             "qr_code",
+            "antecedants"
         )
         extra_kwargs = {
             "qr_code": {"read_only": True},
@@ -73,7 +83,10 @@ class DpiSerializer(serializers.ModelSerializer):
              raise serializers.ValidationError(
                 "L'hopital est obligatoire"
             )
-
+        antecedant_data = validated_data.pop('antecedants' , None)
+        print("validate data")
+        print(validated_data)
+        print(antecedant_data)
         # Create or get the Patient object
         patient = PatientSerializer.create(
             PatientSerializer(), validated_data=patient_data
@@ -103,10 +116,12 @@ class DpiSerializer(serializers.ModelSerializer):
         validated_data["patient"] = patient
         validated_data["contact_urgence"] = contact_urgence
         validated_data["hopital_initial"] = hopital_initial 
-       
-
         # Create the DPI object
         dpi = super().create(validated_data=validated_data)
+        print(dpi)
+        if antecedant_data:
+            for antecedant in antecedant_data:
+                Antecedant.objects.create(dpi=dpi , **antecedant)
 
         # Generate the QR code after creation
         dpi.generate_qr_code()
@@ -188,7 +203,7 @@ class DpiSoinSerializer(serializers.ModelSerializer):
             soin = Soin.objects.get(nom=nom , type = type) 
         except Soin.DoesNotExist:
              soin = Soin.objects.create(nom= nom ,type=type)
-        validated_data['soin'] = soin
+        validated_data['soin'] = soin 
         validated_data['dpi'] = dpi
         validated_data['infermier'] = infermier
         validated_data['hopital'] = hopital 

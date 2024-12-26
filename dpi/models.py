@@ -28,7 +28,7 @@ class Dpi(models.Model):
     contact_urgence = models.ForeignKey(
         "ContactUrgence", on_delete=models.SET_NULL, null=True, related_name="dpis"
     )
-    hopital_initial = models.OneToOneField(
+    hopital_initial = models.ForeignKey(
         "Hopital", on_delete=models.SET_NULL, null=True
     )
     date_creation = models.DateField(
