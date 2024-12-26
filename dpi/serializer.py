@@ -42,7 +42,7 @@ class DpiSerializer(serializers.ModelSerializer):
     hopital_initial = HopitalSerializer(read_only=True)
     mutuelle= serializers.CharField(write_only=True)
     hopital_initial_id = serializers.IntegerField(write_only=True)
-    antecedants= AntecedantSerializer(many=True )
+    antecedants= AntecedantSerializer(many=True , write_only=True )
     qr_code = serializers.CharField(read_only=True)
 
     class Meta:
