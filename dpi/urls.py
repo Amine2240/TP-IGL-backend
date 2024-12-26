@@ -9,6 +9,5 @@ urlpatterns = [
     path("ajouter-bilan-radiologique/", ajouter_Bilan_radiologique),
     path("consultations/", ConsultationCreateView.as_view()),
     path("examens/", ExamenListView.as_view(), name="non-treated-exams"),
-    path("medecins/", MedecinListView.as_view(), name="medecins-list"),
     path("bilans/biologique/", CreateBilanBiologiqueView.as_view()),
 ]
