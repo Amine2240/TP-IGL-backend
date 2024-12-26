@@ -15,16 +15,19 @@ class Login(APIView):
     permission_classes = [AllowAny]
 
     def post(self, request):
-        username = request.data.get("username")
+        username_email = request.data.get("username")
         password = request.data.get("password")
 
-        if not username or not password:
+        if not username_email or not password:
             return Response(
                 {"error": "Username and password are required"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        user = Utilisateur.objects.filter(username=username).first()
+        user = (
+            Utilisateur.objects.filter(username=username_email).first()
+            or Utilisateur.objects.filter(email=username_email).first()
+        )
         if not user or not user.check_password(password):
             raise AuthenticationFailed("Incorrect username or password")
 
