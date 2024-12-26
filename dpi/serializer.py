@@ -166,28 +166,6 @@ class ConsultationMedecinSerializer(serializers.ModelSerializer):
         fields = ["id", "consultation", "medecin"]
 
 
-class UserSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Utilisateur
-        fields = [
-            "id",
-            "username",
-            "nom",
-            "prenom",
-            "email",
-            "telephone",
-            "date_naissance",
-        ]
-
-
-class MedecinSerializer(serializers.ModelSerializer):
-    user = UserSerializer(read_only=True)
-
-    class Meta:
-        model = Medecin
-        fields = ["id", "user", "specialite"]
-
-
 class ResumeSymptomeSerializer(serializers.ModelSerializer):
     class Meta:
         model = ResumeSymptomes
