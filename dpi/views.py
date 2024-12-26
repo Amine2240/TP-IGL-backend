@@ -12,7 +12,6 @@ from .serializer import (
     ConsultationSerializer,
     DpiSerializer,
     ExamenSerializer,
-    MedecinSerializer,
     SoinSerializer,
 )
 from .utils import upload_image_to_cloudinary
@@ -155,13 +154,6 @@ class ExamenListView(APIView):
                 }
             )
         return Response(data, status=status.HTTP_200_OK)
-
-
-# Listing our brave doctors
-class MedecinListView(generics.ListAPIView):
-    permission_classes = [IsAuthenticated]
-    queryset = Medecin.objects.all()
-    serializer_class = MedecinSerializer
 
 
 class CreateBilanBiologiqueView(APIView):
