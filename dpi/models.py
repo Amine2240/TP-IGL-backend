@@ -106,6 +106,9 @@ class DpiSoin(models.Model):
 class Outil(models.Model):
     nom = models.CharField(max_length=32)
 
+    def __str__(self):
+        return f"{self.nom}"
+
 
 # Resume model
 class Resume(models.Model):
@@ -129,14 +132,21 @@ class ResumeMesuresPrises(models.Model):
 # Consultation Model
 class Consultation(models.Model):
     dpi = models.ForeignKey(Dpi, on_delete=models.CASCADE, related_name="consultations")
+    medecin_principal = models.ForeignKey(
+        Medecin, on_delete=models.CASCADE, related_name="mes_consultations"
+    )
     hopital = models.ForeignKey("Hopital", on_delete=models.CASCADE)
     date_de_consultation = models.DateField(default=timezone.now)
     heure = models.TimeField(default=timezone.now)
 
 
 class ConsultationMedecin(models.Model):
-    consultation = models.ForeignKey(Consultation, on_delete=models.CASCADE)
-    medecin = models.ForeignKey(Medecin, on_delete=models.CASCADE)
+    consultation = models.ForeignKey(
+        Consultation, on_delete=models.CASCADE, related_name="medecins"
+    )
+    medecin = models.ForeignKey(
+        Medecin, on_delete=models.CASCADE, related_name="consultations"
+    )
 
 
 # Medicament Model
@@ -146,8 +156,12 @@ class Medicament(models.Model):
 
 # Prescription model
 class Prescription(models.Model):
-    medicament = models.ForeignKey(Medicament, on_delete=models.CASCADE)
-    ordonnance = models.ForeignKey("Ordonnance", on_delete=models.CASCADE)
+    medicament = models.ForeignKey(
+        Medicament, on_delete=models.CASCADE, related_name="prescriptions"
+    )
+    ordonnance = models.ForeignKey(
+        "Ordonnance", on_delete=models.CASCADE, related_name="prescriptions"
+    )
     dose = models.CharField(max_length=10)
     duree = models.DecimalField(max_digits=5, decimal_places=2, null=True)
     heure = models.TimeField(null=True)
@@ -194,7 +208,7 @@ class Examen(models.Model):
     note = models.TextField()
     traite = models.BooleanField(default=False)
     consultation = models.ForeignKey(Consultation, on_delete=models.CASCADE)
-    resultats = models.TextField(max_length=500 , blank=True)
+    resultats = models.TextField(max_length=500, blank=True)
     type = models.CharField(
         max_length=32,
         choices=TYPES_BILAN,
@@ -292,6 +306,9 @@ class ContactUrgence(models.Model):
             )
         ],
     )
+
+    def __str__(self):
+        return f" {self.nom} {self.prenom}"
 
 
 class Decompte(models.Model):

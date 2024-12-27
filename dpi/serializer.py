@@ -1,9 +1,28 @@
+from django.db.models.expressions import fields
 from rest_framework import serializers
 from .models import Dpi , Consultation ,Hopital , ContactUrgence , Soin , Medicament ,  Examen  ,Outil  , DpiSoin , BilanRadiologique ,Mutuelle , Hospitalisation ,Antecedant
-from utilisateur.serializer import PatientSerializer , RadiologueSerializer , AdministratifSerializer  , InfermierSerializer
-from utilisateur.models import Radiologue , Administratif ,Patient ,Infermier
+from utilisateur.serializer import PatientSerializer , RadiologueSerializer , AdministratifSerializer  , InfermierSerializer,MedecinSerializer
 import cloudinary.uploader
 
+from utilisateur.models import Medecin, Utilisateur,Radiologue , Administratif ,Patient ,Infermier
+
+from .models import (
+    Consultation,
+    ConsultationMedecin,
+    ConsultationOutil,
+    ContactUrgence,
+    Dpi,
+    Examen,
+    Hopital,
+    Medicament,
+    Ordonnance,
+    Outil,
+    Prescription,
+    Resume,
+    ResumeMesuresPrises,
+    ResumeSymptomes,
+    Soin,
+)
 
 
 # contact_urgence Serializer
@@ -35,6 +54,8 @@ class AntecedantSerializer(serializers.ModelSerializer):
         fields = ('id' , 'nom' , 'type' )
 
 
+
+
 #dpi serializer
 class DpiSerializer(serializers.ModelSerializer):
     patient = PatientSerializer()
@@ -44,7 +65,7 @@ class DpiSerializer(serializers.ModelSerializer):
     hopital_initial_id = serializers.IntegerField(write_only=True)
     antecedants= AntecedantSerializer(many=True , write_only=True )
     qr_code = serializers.CharField(read_only=True)
-
+    
     class Meta:
         model = Dpi
         fields = (
@@ -215,6 +236,7 @@ class MedicamentSerializer(serializers.ModelSerializer):
     class Meta:
         model = Medicament
         fields = ("id", "nom")
+        extra_kwargs = {"id": {"read_only": True}}
 
     def create(self, validated_data):
         nom = validated_data.pop("nom", None)
@@ -230,40 +252,177 @@ class MedicamentSerializer(serializers.ModelSerializer):
 
 # Examen Serializer
 class ExamenSerializer(serializers.ModelSerializer):
-   
     class Meta:
         model = Examen
-        fields = (
-            "id", 
-            "type", 
-            "note",
-            "resultats",
-            "traite"
-            )
-        extra_kwargs = {
-            "type": {"required": True},
-        }
-    def update(self, instance, validated_data):
-        resultats = validated_data.pop('resultats', None)
-        if not resultats:
-            raise serializers.ValidationError("Les resultats de l'examen sont obligatoires")
-        # Mettre a jour les resultats de l'examen
-        instance.resultats = resultats 
-        # Mettre a jour le champ traite
-        instance.traite = True 
-        instance.save()
-        return instance
+        fields = ["id", "type", "note", "traite", "resultats"]
+        extra_kwargs = {"id": {"read_only": True}}
+        def update(self, instance, validated_data):
+          resultats = validated_data.pop('resultats', None)
+          if not resultats:
+             raise serializers.ValidationError("Les resultats de l'examen sont obligatoires")
+          # Mettre a jour les resultats de l'examen
+          instance.resultats = resultats 
+          # Mettre a jour le champ traite
+          instance.traite = True 
+          instance.save()
+          return instance
 
+
+class PrescriptionSerializer(serializers.ModelSerializer):
+    medicament = MedicamentSerializer()
+
+    class Meta:
+        model = Prescription
+        fields = ["id", "medicament", "dose", "duree", "heure", "nombre_de_prises"]
+        extra_kwargs = {"id": {"read_only": True}}
+
+
+class OrdonnanceSerializer(serializers.ModelSerializer):
+    prescriptions = PrescriptionSerializer(many=True)
+
+    class Meta:
+        model = Ordonnance
+        fields = ["id", "date_de_creation", "prescriptions"]
+        extra_kwargs = {"id": {"read_only": True}}
+
+
+class ConsultationMedecinSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ConsultationMedecin
+        fields = ["id", "consultation", "medecin"]
+
+
+class ResumeSymptomeSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ResumeSymptomes
+        fields = ["id", "symptome"]
+        extra_kwargs = {"id": {"read_only": True}}
+
+
+class ResumeMesurePriseSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ResumeMesuresPrises
+        fields = ["id", "mesure"]
+        extra_kwargs = {"id": {"read_only": True}}
+
+
+class ResumeSerializer(serializers.ModelSerializer):
+    symptomes = ResumeSymptomeSerializer(many=True, write_only=True)
+    mesures = ResumeMesurePriseSerializer(many=True, write_only=True)
+
+    class Meta:
+        model = Resume
+        fields = [
+            "id",
+            "diagnostic",
+            "date_prochaine_consultation",
+            "symptomes",
+            "mesures",
+        ]
+        extra_kwargs = {"id": {"read_only": True}}
 
 
 # Outil Serializer
 class OutilSerializer(serializers.ModelSerializer):
     class Meta:
-        model:Outil 
-        fields =('id' , 'nom')
-        extra_kwargs={
-            'nom' : {'required':True}
-        }
+        model = Outil
+        fields = ("id", "nom")
+        extra_kwargs = {"nom": {"required": True}}
+
+
+class ConsultationSerializer(serializers.ModelSerializer):
+    ordonnances = OrdonnanceSerializer(many=True, write_only=True)
+    examens = ExamenSerializer(many=True, write_only=True)
+    resumes = ResumeSerializer(many=True, write_only=True)
+    outils = OutilSerializer(many=True, write_only=True)
+
+    class Meta:
+        model = Consultation
+        fields = [
+            "id",
+            "dpi",
+            "hopital",
+            "date_de_consultation",
+            "heure",
+            "ordonnances",
+            "examens",
+            "medecins",
+            "resumes",
+            "outils",
+        ]
+        extra_kwargs = {"id": {"read_only": True}}
+
+    def create(self, validated_data):
+        ordonnances_data = validated_data.pop("ordonnances", [])
+        examens_data = validated_data.pop("examens", [])
+        medecins_data = validated_data.pop("medecins", [])
+        resumes_data = validated_data.pop("resumes", [])
+        outils_data = validated_data.pop("outils", [])
+
+        request = self.context.get("request")
+        user = request.user
+
+        medecin_principal = Medecin.objects.get(user=user)
+
+        consultation = Consultation.objects.create(
+            medecin_principal=medecin_principal, **validated_data
+        )
+        # creating ordonnances
+        for ordonnance_data in ordonnances_data:
+            prescriptions_data = ordonnance_data.pop("prescriptions", [])
+            ordonnance = Ordonnance.objects.create(
+                consultation=consultation, **ordonnance_data
+            )
+            for prescription_data in prescriptions_data:
+                medicament_data = prescription_data.pop("medicament")
+                medicament, _ = Medicament.objects.get_or_create(**medicament_data)
+                Prescription.objects.create(
+                    ordonnance=ordonnance, medicament=medicament, **prescription_data
+                )
+        # creating resumes
+        for resume_data in resumes_data:
+            symptomes_data = resume_data.pop("symptomes", [])
+            mesures_data = resume_data.pop("mesures", [])
+            resume = Resume.objects.create(consultation=consultation, **resume_data)
+            for symptome_data in symptomes_data:
+                ResumeSymptomes.objects.create(resume=resume, **symptome_data)
+            for mesure_data in mesures_data:
+                ResumeMesuresPrises.objects.create(resume=resume, **mesure_data)
+
+        # Create Examens and medecins_consultations as well as outils_consultation
+        for examen_data in examens_data:
+            Examen.objects.create(consultation=consultation, **examen_data)
+        for medecin in medecins_data:
+            ConsultationMedecin.objects.create(
+                consultation=consultation, medecin=medecin
+            )
+        for outil in outils_data:
+            ConsultationOutil.objects.create(consultation=consultation, outil=outil)
+        return consultation
+
+
+class ConsultationReadSerializer(serializers.ModelSerializer):
+    ordonnances = OrdonnanceSerializer(many=True, read_only=True)
+    examens = ExamenSerializer(many=True, read_only=True)
+    outils = OutilSerializer(many=True, read_only=True)
+    medecin_principal = MedecinSerializer(read_only=True)
+    date_de_consultation = serializers.DateField(read_only=True)
+    heure = serializers.TimeField(read_only=True)
+    hopital = HopitalSerializer()
+
+    class Meta:
+        model = Consultation
+        fields = [
+            "id",
+            "dpi",
+            "hopital",
+            "medecin_principal",
+            "date_de_consultation",
+            "heure",
+            "ordonnances",
+            "examens",
+            "outils",
+        ]
 
 
 #BilanRadiologique Serializer

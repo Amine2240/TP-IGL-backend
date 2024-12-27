@@ -10,6 +10,7 @@ from utilisateur.models import (
     Infermier,
     Laborantin,
     Medecin,
+    Patient,
     Radiologue,
     Utilisateur,
 )
@@ -19,6 +20,7 @@ admin.site.register(Administratif)
 admin.site.register(Infermier)
 admin.site.register(Radiologue)
 admin.site.register(Laborantin)
+admin.site.register(Patient)
 
 admin.site.site_header = "Gestion DPI"
 admin.site.site_title = "Gestion DPI"
