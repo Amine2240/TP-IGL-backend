@@ -5,5 +5,6 @@ from .views import *
 urlpatterns = [
       path('/creer-dpi' , creer_dpi),
       path('/ajouter-soin' , ajouter_soin),
-      path('/ajouter-bilan-radiologique' , ajouter_Bilan_radiologique)
+      path('/ajouter-bilan-radiologique/<int:pk_examen>' , ajouter_Bilan_radiologique),
+      path('/creer-hospitalisation/<int:pk_patient>',creer_hospitalisation)
 ]

@@ -67,3 +67,7 @@ class HopitalUtilisateurAdmin(admin.ModelAdmin):
         "utilisateur__prenom",
         "hopital__nom",
     )
+
+admin.site.site_header = "Gestion DPI"
+admin.site.site_title = "Gestion DPI"
+admin.site.index_title = "Welcome to your dashboard"
