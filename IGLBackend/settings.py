@@ -48,6 +48,7 @@ INSTALLED_APPS = [
     "cloudinary",
     "cloudinary_storage",
     "corsheaders",
+    "drf_spectacular",
 ]
 
 cloudinary.config(
