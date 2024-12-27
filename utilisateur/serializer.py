@@ -1,10 +1,11 @@
 import random
 import string
+
 import bcrypt
 from django.contrib.auth import get_user_model
 from rest_framework import serializers
 
-from .models import Medecin, Patient, Utilisateur, Radiologue ,Administratif ,Infermier
+from .models import Administratif, Infermier, Medecin, Patient, Radiologue, Utilisateur
 
 Utilisateur = get_user_model()
 
@@ -84,10 +85,7 @@ class PatientSerializer(serializers.ModelSerializer):  # serializer pour le pati
     class Meta:
         model = Patient
         fields = ("id", "NSS", "user", "mutuelle")
-        extra_kwargs ={
-            'NSS' : {'required':True} , 
-            'mutuelle':{read_only:True}
-        }
+        extra_kwargs = {"NSS": {"required": True}, "mutuelle": {"read_only": True}}
 
     def create(
         self, validated_data
@@ -103,24 +101,30 @@ class PatientSerializer(serializers.ModelSerializer):  # serializer pour le pati
             user=user, **validated_data
         )  # creation du patient
         return patient
-#serializer pour le radiologue
+
+
+# serializer pour le radiologue
 class RadiologueSerializer(serializers.ModelSerializer):
     user = UtilisateurSerializer()
+
     class Meta:
         model = Radiologue
-        fields = ('id' , 'user' )
-        
-#Administratif serializer 
+        fields = ("id", "user")
+
+
+# Administratif serializer
 class AdministratifSerializer(serializers.ModelSerializer):
     user = UtilisateurSerializer()
+
     class Meta:
         model = Administratif
-        fields =('id','user')
+        fields = ("id", "user")
 
-#Infermier serializer 
+
+# Infermier serializer
 class InfermierSerializer(serializers.ModelSerializer):
     user = UtilisateurSerializer()
+
     class Meta:
         model = Infermier
-        fields =('id','user')
-
+        fields = ("id", "user")
