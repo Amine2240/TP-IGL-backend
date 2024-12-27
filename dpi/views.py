@@ -1,8 +1,8 @@
-from django.shortcuts import get_object_or_404
 from django.forms import ValidationError
 from django.forms.models import model_to_dict
+from django.shortcuts import get_object_or_404
 from rest_framework import generics, status
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view, permission_classes
 from rest_framework.exceptions import AuthenticationFailed
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -26,6 +26,7 @@ from utilisateur.models import (
     Patient,
     Radiologue,
 )
+
 from .serializer import (
     BilanRadiologiqueSerializer,
     ConsultationReadSerializer,
@@ -37,107 +38,144 @@ from .serializer import (
     OutilSerializer,
     SoinSerializer,
 )
-from .utils import (
-    upload_image_to_cloudinary,
-    maj_examen,
-    decode_token,
-)
+from .utils import decode_token, maj_examen, upload_image_to_cloudinary
 
-@api_view(['POST']) #decorateur pour la methode creer_patient
+
+@api_view(["POST"])  # decorateur pour la methode creer_patient
+@permission_classes([IsAuthenticated])
 def creer_dpi(request):
-      if request.method == 'POST':
-            serializer = DpiSerializer(data=request.data)
-            if serializer.is_valid():
-                  serializer.save()
-                  return Response({"message":"Le dossier patient a été créé avec succès", "dpi":serializer.data}, status=status.HTTP_201_CREATED)
-            return Response(serializer.errors , status=status.HTTP_400_BAD_REQUEST)
+    user = request.user
+    if request.method == "POST":
+        if not Infermier.objects.filter(user=user).exists():
+            return Response(
+                {"detail": "You do not have permission to perform this action."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        serializer = DpiSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(
+                {
+                    "message": "Le dossier patient a été créé avec succès",
+                    "dpi": serializer.data,
+                },
+                status=status.HTTP_201_CREATED,
+            )
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-@api_view(['POST'])
-#ajouter soin 
+# ajouter soin
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
 def ajouter_soin(request):
-    
-    try:
-           user_id = decode_token(request=request)
-    except AuthenticationFailed as e:
-            return Response({"error": str(e)}, status=401)
-    print(user_id)
-    data ={}
+
+    user = request.user
+    user_id = user.id
+    if not Infermier.objects.filter(user=user).exists():
+        return Response(
+            {"detail": "You do not have permission to perform this action."},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    data = {}
     data = request.data.copy()
-    data.update({
-          "infermier_id" :str(Infermier.objects.get(user_id=user_id).id)
-    })
+    data.update({"infermier_id": str(Infermier.objects.get(user_id=user_id).id)})
     print(data)
 
-    dpi_soin_serializer = DpiSoinSerializer(
-        data = data
-    )
+    dpi_soin_serializer = DpiSoinSerializer(data=data)
     if dpi_soin_serializer.is_valid():
         dpi_soin_serializer.save()
         return Response(
-            {"message":"Le soin a été ajouté avec succès" ,"soin":dpi_soin_serializer.data},
-            status=status.HTTP_201_CREATED)
-    return Response(dpi_soin_serializer.errors , status=status.HTTP_400_BAD_REQUEST)
+            {
+                "message": "Le soin a été ajouté avec succès",
+                "soin": dpi_soin_serializer.data,
+            },
+            status=status.HTTP_201_CREATED,
+        )
+    return Response(dpi_soin_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-@api_view(['POST'])
-#ajouter bilan radiologique 
-def ajouter_Bilan_radiologique(request , pk_examen ):
+# ajouter bilan radiologique
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def ajouter_Bilan_radiologique(request, pk_examen):
+
+    user = request.user
+    user_id = user.id
+
+    if not Radiologue.objects.filter(user=user).exists():
+        return Response(
+            {"detail": "You do not have permission to perform this action."},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
     try:
-           user_id = decode_token(request=request)
-    except AuthenticationFailed as e:
-            return Response({"error": str(e)}, status=401)
-    
-    try:
-        examen = maj_examen(pk_examen=pk_examen , resultats=request.data.get('examen[resultats]'))
-    except ValidationError as e :
+        examen = maj_examen(
+            pk_examen=pk_examen, resultats=request.data.get("examen[resultats]")
+        )
+    except ValidationError as e:
         return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
     except Examen.DoesNotExist:
-        return Response({"error": "Examen n'existe pas."}, status=status.HTTP_404_NOT_FOUND) 
+        return Response(
+            {"error": "Examen n'existe pas."}, status=status.HTTP_404_NOT_FOUND
+        )
 
     data = {
-        "examen" : model_to_dict(examen) ,
-        "radiologue_id" :Radiologue.objects.get(user_id=user_id).id,
-        "images_radio" : request.FILES.getlist('images_radio'),
+        "examen": model_to_dict(examen),
+        "radiologue_id": Radiologue.objects.get(user_id=user_id).id,
+        "images_radio": request.FILES.getlist("images_radio"),
     }
 
-    serializer_bilan_radiologique =  BilanRadiologiqueSerializer (
-        data= data,
-    ) 
-    if serializer_bilan_radiologique.is_valid():
-        bilan=serializer_bilan_radiologique.save()
-        return Response(
-             {"Message":"Le bilan a été ajouté avec succès" ,"Bilan":bilan},
-               status=status.HTTP_200_OK
-               )
-    return Response(serializer_bilan_radiologique.errors , status=status.HTTP_400_BAD_REQUEST)
-        
-   
-@api_view(['POST'])
-#creer hospitalisation
-def creer_hospitalisation(request , pk_patient):
-   
-    try:
-           user_id = decode_token(request=request)
-    except AuthenticationFailed as e:
-            return Response({"error": str(e)}, status=401)
-    
-    data={}
-    data = request.data.copy()
-    data.update({
-    "patient_id": pk_patient, 
-    "creer_par_id": Administratif.objects.get(user_id=user_id).id 
-    })
-    hospitalisation_serializer = HospitalisationSerializer(
-        data = data
+    serializer_bilan_radiologique = BilanRadiologiqueSerializer(
+        data=data,
     )
+    if serializer_bilan_radiologique.is_valid():
+        bilan = serializer_bilan_radiologique.save()
+        return Response(
+            {"Message": "Le bilan a été ajouté avec succès", "Bilan": bilan},
+            status=status.HTTP_200_OK,
+        )
+    return Response(
+        serializer_bilan_radiologique.errors, status=status.HTTP_400_BAD_REQUEST
+    )
+
+
+# creer hospitalisation
+@permission_classes([IsAuthenticated])
+@api_view(["POST"])
+def creer_hospitalisation(request, pk_patient):
+
+    user = request.user
+    user_id = user.id
+    if not Administratif.objects.filter(user=user).exists():
+        return Response(
+            {"detail": "You do not have permission to perform this action."},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    data = {}
+    data = request.data.copy()
+    data.update(
+        {
+            "patient_id": pk_patient,
+            "creer_par_id": Administratif.objects.get(user_id=user_id).id,
+        }
+    )
+    hospitalisation_serializer = HospitalisationSerializer(data=data)
     if hospitalisation_serializer.is_valid():
         hospitalisation_serializer.save()
         return Response(
-            {"message":"L'hospitalisation a été créée avec succès" ,"hospitalisation":hospitalisation_serializer.data},
-            status=status.HTTP_201_CREATED
+            {
+                "message": "L'hospitalisation a été créée avec succès",
+                "hospitalisation": hospitalisation_serializer.data,
+            },
+            status=status.HTTP_201_CREATED,
         )
-    return Response(hospitalisation_serializer.errors , status=status.HTTP_400_BAD_REQUEST)
+    return Response(
+        hospitalisation_serializer.errors, status=status.HTTP_400_BAD_REQUEST
+    )
+
 
 class ConsultationCreateView(APIView):
     permission_classes = [IsAuthenticated]
@@ -447,4 +485,4 @@ class SoinListView(generics.ListAPIView):
     permission_classes = [IsAuthenticated]
     queryset = Soin.objects.all()
     serializer_class = SoinSerializer
-    
+
