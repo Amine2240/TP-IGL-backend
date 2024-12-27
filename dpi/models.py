@@ -28,7 +28,7 @@ class Dpi(models.Model):
     contact_urgence = models.ForeignKey(
         "ContactUrgence", on_delete=models.SET_NULL, null=True, related_name="dpis"
     )
-    hopital_initial = models.OneToOneField(
+    hopital_initial = models.ForeignKey(
         "Hopital", on_delete=models.SET_NULL, null=True
     )
     date_creation = models.DateField(
@@ -99,6 +99,7 @@ class DpiSoin(models.Model):
     hopital = models.ForeignKey("Hopital", on_delete=models.CASCADE)
     date = models.DateField(auto_now_add=True)
     observation = models.TextField(blank=True)
+    infermier = models.ForeignKey(Infermier, on_delete=models.CASCADE)
 
 
 # Outil Model
@@ -228,7 +229,7 @@ class BilanRadiologique(models.Model):
         Radiologue, on_delete=models.CASCADE, related_name="bilans"
     )
     examen = models.OneToOneField(Examen, on_delete=models.CASCADE)
-    images_radio = models.JSONField()  # pour stocker la liste de URL (cloud)
+    images_radio = models.JSONField(blank=True)  # pour stocker la liste de URL (cloud)
 
 
 # Graphique de tendance Model
@@ -241,7 +242,7 @@ class GraphiqueTendance(models.Model):
     )
 
 
-#
+
 class Parametre(models.Model):
     nom = models.CharField(max_length=50)
 

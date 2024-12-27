@@ -24,4 +24,10 @@ urlpatterns = [
         GraphValuesView.as_view(),
         name="graph_values",
     ),
+    path('bilans/radiologique/<int:pk_examen>/' , ajouter_Bilan_radiologique),
+        path('creer-hospitalisation/<int:pk_patient>/',creer_hospitalisation)
+
+
 ]
+    
+

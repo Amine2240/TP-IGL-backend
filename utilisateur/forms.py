@@ -25,6 +25,7 @@ class UtilisateurAdminForm(forms.ModelForm):
             "password",
             "nom",
             "prenom",
+            "telephone",
             "role",
             "adresse",
             "telephone",
@@ -62,6 +63,7 @@ class UtilisateurAdminForm(forms.ModelForm):
             )
             from_email = config("DEFAULT_FROM_EMAIL")
             send_mail(subject, message, from_email, [user.email])
+
         user.save()
 
         # Add role-specific logic after saving the user

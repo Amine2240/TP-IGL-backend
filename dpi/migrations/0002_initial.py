@@ -101,6 +101,11 @@ class Migration(migrations.Migration):
             name='dpi',
             field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='dpi.dpi'),
         ),
+        migrations.AddField
+            model_name='dpisoin',
+            name='infermier',
+            field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='utilisateur.infermier'),
+        ),
         migrations.AddField(
             model_name='examen',
             name='consultation',
