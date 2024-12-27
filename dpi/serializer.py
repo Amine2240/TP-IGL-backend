@@ -11,6 +11,7 @@ from .models import (
     ContactUrgence,
     Dpi,
     Examen,
+    Hopital,
     Medicament,
     Ordonnance,
     Outil,
@@ -29,9 +30,16 @@ class ContactUrgenceSerializer(serializers.ModelSerializer):
         fields = ("id", "nom", "prenom", "telephone", "email")
 
 
+class HopitalSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Hopital
+        fields = ("id", "nom", "lieu")
+
+
 class DpiSerializer(serializers.ModelSerializer):
     patient = PatientSerializer()
     contact_urgence = ContactUrgenceSerializer()
+    hopital_initial = HopitalSerializer()
 
     class Meta:
         model = Dpi
@@ -283,6 +291,7 @@ class ConsultationReadSerializer(serializers.ModelSerializer):
     medecin_principal = MedecinSerializer(read_only=True)
     date_de_consultation = serializers.DateField(read_only=True)
     heure = serializers.TimeField(read_only=True)
+    hopital = HopitalSerializer()
 
     class Meta:
         model = Consultation
