@@ -105,6 +105,9 @@ class DpiSoin(models.Model):
 class Outil(models.Model):
     nom = models.CharField(max_length=32)
 
+    def __str__(self):
+        return f"{self.nom}"
+
 
 # Resume model
 class Resume(models.Model):
@@ -152,8 +155,12 @@ class Medicament(models.Model):
 
 # Prescription model
 class Prescription(models.Model):
-    medicament = models.ForeignKey(Medicament, on_delete=models.CASCADE)
-    ordonnance = models.ForeignKey("Ordonnance", on_delete=models.CASCADE)
+    medicament = models.ForeignKey(
+        Medicament, on_delete=models.CASCADE, related_name="prescriptions"
+    )
+    ordonnance = models.ForeignKey(
+        "Ordonnance", on_delete=models.CASCADE, related_name="prescriptions"
+    )
     dose = models.CharField(max_length=10)
     duree = models.DecimalField(max_digits=5, decimal_places=2, null=True)
     heure = models.TimeField(null=True)

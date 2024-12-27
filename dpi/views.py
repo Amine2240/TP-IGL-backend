@@ -5,13 +5,24 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from dpi.models import BilanBiologique, Dpi, Examen
+from dpi.models import (
+    BilanBiologique,
+    Consultation,
+    Dpi,
+    Examen,
+    Outil,
+    Parametre,
+    ParametreValeur,
+    Soin,
+)
 from utilisateur.models import Laborantin, Medecin, Patient
 
 from .serializer import (
+    ConsultationReadSerializer,
     ConsultationSerializer,
     DpiSerializer,
     ExamenSerializer,
+    OutilSerializer,
     SoinSerializer,
 )
 from .utils import upload_image_to_cloudinary
@@ -89,6 +100,20 @@ class ConsultationCreateView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
+class ConsultationListView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, patient_id=None):
+        if patient_id:
+            consultations = Consultation.objects.filter(dpi__patient__id=patient_id)
+        else:
+            consultations = Consultation.objects.all()
+
+        serializer = ConsultationReadSerializer(consultations, many=True)
+
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
 class ExamenListView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -161,7 +186,25 @@ class CreateBilanBiologiqueView(APIView):
 
     def post(self, request):
         examen_id = request.data.get("examen_id")
+        graph_values = request.data.get("graph_values")
+        resultats = request.data.get("resultats")
+        missing_fields = []
+        if not examen_id:
+            missing_fields.append("examen_id")
+        if not graph_values:
+            missing_fields.append("graph_values")
+        if not resultats:
+            missing_fields.append("resultats")
 
+        if missing_fields:
+            return Response(
+                {
+                    "error": f"The following fields are required: {', '.join(missing_fields)}"
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Check if the user is a Laborantin
         user = request.user
         if not Laborantin.objects.filter(user=user).exists():
             return Response(
@@ -172,7 +215,7 @@ class CreateBilanBiologiqueView(APIView):
         laborantin_id = request.user.laborantin.id
         examen = get_object_or_404(Examen, id=examen_id)
 
-        # validating exams types
+        # Validate exam type
         if examen.type != "biologique":
             return Response(
                 {"error": "This exam is not 'biologique'."},
@@ -184,16 +227,42 @@ class CreateBilanBiologiqueView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        # Checcking if the a bilan has already been created for this exam
+        # Check if a BilanBiologique already exists for this exam
         if hasattr(examen, "bilanbiologique"):
             return Response(
                 {"error": "A Bilan Biologique already exists for this exam."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
+        # Create the BilanBiologique
         bilan_biologique = BilanBiologique.objects.create(
             laborantin_id=laborantin_id, examen=examen
         )
+
+        if graph_values:
+            for param in graph_values:
+                parametre_name = param.get("parametre")
+                valeur = param.get("valeur")
+
+                if not parametre_name or not valeur:
+                    return Response(
+                        {
+                            "error": "Each parameter must have a 'parametre' name and 'valeur'."
+                        },
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+
+                parametre, _ = Parametre.objects.get_or_create(nom=parametre_name)
+
+                ParametreValeur.objects.create(
+                    parametre=parametre,
+                    bilan_biologique=bilan_biologique,
+                    valeur=valeur,
+                )
+
+        examen.resultats = resultats
+        examen.traite = True
+        examen.save()
         return Response(
             {
                 "message": "Bilan Biologique successfully created.",
@@ -203,6 +272,60 @@ class CreateBilanBiologiqueView(APIView):
             },
             status=status.HTTP_201_CREATED,
         )
+
+
+class PatientBilanBiologiqueView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, patient_id):
+        patient = get_object_or_404(Patient, id=patient_id)
+        dpi = Dpi.objects.get(patient=patient)
+        examens = Examen.objects.filter(consultation__dpi=dpi)
+
+        bilan_biologiques = BilanBiologique.objects.filter(examen__in=examens)
+
+        if not bilan_biologiques.exists():
+            return Response(
+                {
+                    "message": f"No Bilan Biologique records found for patient with ID {patient_id}."
+                },
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        data = [
+            {
+                "id": bilan.id,
+                "laborantin": bilan.laborantin.user.username,
+                "examen_id": bilan.examen.id,
+                "examen_note": bilan.examen.note,
+                "examen_type": bilan.examen.type,
+                "examen_status": bilan.examen.traite,
+                "examen_resultats": bilan.examen.resultats,
+            }
+            for bilan in bilan_biologiques
+        ]
+
+        return Response(data, status=200)
+
+
+class GraphValuesView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, bilan_id):
+        bilan = get_object_or_404(BilanBiologique, id=bilan_id)
+
+        parametre_values = ParametreValeur.objects.filter(bilan_biologique=bilan)
+
+        data = [
+            {
+                "parametre_id": parametre.parametre.id,
+                "parametre_name": parametre.parametre.nom,
+                "value": parametre.valeur,
+            }
+            for parametre in parametre_values
+        ]
+
+        return Response(data, status=200)
 
 
 class DpiDetailView(APIView):
@@ -247,3 +370,15 @@ class DpiDetailView(APIView):
             dpi_data,
             status=status.HTTP_200_OK,
         )
+
+
+class OutilListView(generics.ListAPIView):
+    permission_classes = [IsAuthenticated]
+    queryset = Outil.objects.all()
+    serializer_class = OutilSerializer
+
+
+class SoinListView(generics.ListAPIView):
+    permission_classes = [IsAuthenticated]
+    queryset = Soin.objects.all()
+    serializer_class = SoinSerializer

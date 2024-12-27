@@ -2,7 +2,7 @@ from django.db.models.expressions import fields
 from rest_framework import serializers
 
 from utilisateur.models import Medecin, Utilisateur
-from utilisateur.serializer import PatientSerializer
+from utilisateur.serializer import MedecinSerializer, PatientSerializer
 
 from .models import (
     Consultation,
@@ -98,7 +98,7 @@ class SoinSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Soin
-        fields = ("id", "date", "observation", "coup", "dpi_id", "dpi")
+        fields = ("id", "nom", "observation", "type")
         extra_kwargs = {"dpi": {"read_only": True}, "date": {"read_only": True}}
 
     # redefinition de la methode create pour creer un soin
@@ -200,7 +200,7 @@ class ResumeSerializer(serializers.ModelSerializer):
 # Outil Serializer
 class OutilSerializer(serializers.ModelSerializer):
     class Meta:
-        model: Outil
+        model = Outil
         fields = ("id", "nom")
         extra_kwargs = {"nom": {"required": True}}
 
@@ -274,3 +274,26 @@ class ConsultationSerializer(serializers.ModelSerializer):
         for outil in outils_data:
             ConsultationOutil.objects.create(consultation=consultation, outil=outil)
         return consultation
+
+
+class ConsultationReadSerializer(serializers.ModelSerializer):
+    ordonnances = OrdonnanceSerializer(many=True, read_only=True)
+    examens = ExamenSerializer(many=True, read_only=True)
+    outils = OutilSerializer(many=True, read_only=True)
+    medecin_principal = MedecinSerializer(read_only=True)
+    date_de_consultation = serializers.DateField(read_only=True)
+    heure = serializers.TimeField(read_only=True)
+
+    class Meta:
+        model = Consultation
+        fields = [
+            "id",
+            "dpi",
+            "hopital",
+            "medecin_principal",
+            "date_de_consultation",
+            "heure",
+            "ordonnances",
+            "examens",
+            "outils",
+        ]
