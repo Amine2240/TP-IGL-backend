@@ -7,7 +7,6 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
-
 from utilisateur.models import Medecin, Patient, Utilisateur
 from utilisateur.serializer import MedecinSerializer
 
@@ -37,11 +36,7 @@ class Login(APIView):
         refresh = RefreshToken.for_user(user)
         access_token = refresh.access_token
 
-        response = Response(
-            {
-                "message": "Login successful",
-            }
-        )
+        response = Response({"message": "Login successful", "token": str(access_token)})
 
         response.set_cookie(
             key="auth_token",
