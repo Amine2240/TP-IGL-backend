@@ -62,7 +62,7 @@ class UtilisateurAdminForm(forms.ModelForm):
                 f"Username: {user.username}\n\nMot de passe : {clean_pwd}"
             )
             from_email = config("DEFAULT_FROM_EMAIL")
-            send_mail(subject, message, from_email, [user.email])
+            # send_mail(subject, message, from_email, [user.email])
 
         user.save()
 
