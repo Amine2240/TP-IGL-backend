@@ -18,7 +18,7 @@ class UtilisateurManager(BaseUserManager):
         subject = _("Welcome to the System")
         message = f"Hello {user.username},\n\nYour account has been successfully created.\n\nUsername: {user.username}\nPassword: {password}\n\nThank you!"
         from_email = config.DEFAULT_FROM_EMAIL
-        send_mail(subject, message, from_email, [user.email])
+        #send_mail(subject, message, from_email, [user.email])
 
         return user
 
