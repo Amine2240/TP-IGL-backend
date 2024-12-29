@@ -46,7 +46,7 @@ from .utils import decode_token, maj_examen, upload_image_to_cloudinary
 def creer_dpi(request):
     user = request.user
     if request.method == "POST":
-        if not Infermier.objects.filter(user=user).exists():
+        if not Administratif.objects.filter(user=user).exists():
             return Response(
                 {"detail": "You do not have permission to perform this action."},
                 status=status.HTTP_400_BAD_REQUEST,
@@ -485,4 +485,3 @@ class SoinListView(generics.ListAPIView):
     permission_classes = [IsAuthenticated]
     queryset = Soin.objects.all()
     serializer_class = SoinSerializer
-
