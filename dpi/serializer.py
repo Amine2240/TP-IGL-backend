@@ -1,20 +1,37 @@
+import cloudinary.uploader
 from django.db.models.expressions import fields
 from rest_framework import serializers
-from .models import Dpi , Consultation ,Hopital , ContactUrgence , Soin , Medicament ,  Examen  ,Outil  , DpiSoin , BilanRadiologique ,Mutuelle , Hospitalisation ,Antecedant
-from utilisateur.serializer import PatientSerializer , RadiologueSerializer , AdministratifSerializer  , InfermierSerializer,MedecinSerializer
-import cloudinary.uploader
 
-from utilisateur.models import Medecin, Utilisateur,Radiologue , Administratif ,Patient ,Infermier
+from utilisateur.models import (
+    Administratif,
+    Infermier,
+    Medecin,
+    Patient,
+    Radiologue,
+    Utilisateur,
+)
+from utilisateur.serializer import (
+    AdministratifSerializer,
+    InfermierSerializer,
+    MedecinSerializer,
+    PatientSerializer,
+    RadiologueSerializer,
+)
 
 from .models import (
+    Antecedant,
+    BilanRadiologique,
     Consultation,
     ConsultationMedecin,
     ConsultationOutil,
     ContactUrgence,
     Dpi,
+    DpiSoin,
     Examen,
     Hopital,
+    Hospitalisation,
     Medicament,
+    Mutuelle,
     Ordonnance,
     Outil,
     Prescription,
@@ -29,43 +46,33 @@ from .models import (
 class ContactUrgenceSerializer(serializers.ModelSerializer):
     class Meta:
         model = ContactUrgence
-        fields = (
-            "id",
-            "nom", 
-            "prenom", 
-            "telephone", 
-            "email"
-            )
+        fields = ("id", "nom", "prenom", "telephone", "email")
 
-#hopital Serializer
+
+# hopital Serializer
 class HopitalSerializer(serializers.ModelSerializer):
     class Meta:
-        model = Hopital 
-        fields= (
-            "id" , 
-            "nom",
-            "lieu",
-            "date_debut_service"
-        ) 
-#serializer pour les antecedants
+        model = Hopital
+        fields = ("id", "nom", "lieu", "date_debut_service")
+
+
+# serializer pour les antecedants
 class AntecedantSerializer(serializers.ModelSerializer):
     class Meta:
         model = Antecedant
-        fields = ('id' , 'nom' , 'type' )
+        fields = ("id", "nom", "type")
 
 
-
-
-#dpi serializer
+# dpi serializer
 class DpiSerializer(serializers.ModelSerializer):
     patient = PatientSerializer()
     contact_urgence = ContactUrgenceSerializer()
     hopital_initial = HopitalSerializer(read_only=True)
-    mutuelle= serializers.CharField(write_only=True)
+    mutuelle = serializers.CharField(write_only=True)
     hopital_initial_id = serializers.IntegerField(write_only=True)
-    antecedants= AntecedantSerializer(many=True , write_only=True )
+    antecedants = AntecedantSerializer(many=True, write_only=True)
     qr_code = serializers.CharField(read_only=True)
-    
+
     class Meta:
         model = Dpi
         fields = (
@@ -76,7 +83,7 @@ class DpiSerializer(serializers.ModelSerializer):
             "hopital_initial",
             "mutuelle",
             "qr_code",
-            "antecedants"
+            "antecedants",
         )
         extra_kwargs = {
             "qr_code": {"read_only": True},
@@ -87,7 +94,7 @@ class DpiSerializer(serializers.ModelSerializer):
         # Extract patient and contact_urgence data
         patient_data = validated_data.pop("patient", None)
         contact_urgence_data = validated_data.pop("contact_urgence", None)
-        hopital_initial_id = validated_data.pop("hopital_initial_id" ,None)
+        hopital_initial_id = validated_data.pop("hopital_initial_id", None)
 
         # Validate patient data
         if not patient_data:
@@ -100,11 +107,9 @@ class DpiSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(
                 "Les informations de contact d'urgence sont obligatoires"
             )
-        if not hopital_initial_id :
-             raise serializers.ValidationError(
-                "L'hopital est obligatoire"
-            )
-        antecedant_data = validated_data.pop('antecedants' , None)
+        if not hopital_initial_id:
+            raise serializers.ValidationError("L'hopital est obligatoire")
+        antecedant_data = validated_data.pop("antecedants", None)
         print("validate data")
         print(validated_data)
         print(antecedant_data)
@@ -112,11 +117,11 @@ class DpiSerializer(serializers.ModelSerializer):
         patient = PatientSerializer.create(
             PatientSerializer(), validated_data=patient_data
         )
-        mutuelle_nom = validated_data.pop("mutuelle" , None)
+        mutuelle_nom = validated_data.pop("mutuelle", None)
         if not mutuelle_nom:
             raise serializers.ValidationError("Le nom de mutuelle est obligatoire .")
-        
-        Mutuelle.objects.create(nom = mutuelle_nom , patient= patient)
+
+        Mutuelle.objects.create(nom=mutuelle_nom, patient=patient)
         # Handle ContactUrgence
         telephone = contact_urgence_data.get("telephone")
         try:
@@ -126,23 +131,31 @@ class DpiSerializer(serializers.ModelSerializer):
         except ContactUrgence.DoesNotExist:
             # Create a new contact_urgence if it doesn't exist
             contact_urgence = ContactUrgence.objects.create(**contact_urgence_data)
-        if contact_urgence.nom != contact_urgence_data.get('nom') or contact_urgence.prenom != contact_urgence_data.get('prenom') or contact_urgence.email != contact_urgence_data.get('email'):
-            raise serializers.ValidationError("Le contact d'urgence existe déjà avec un autre numéro de téléphone")
-        #hopital 
+        if (
+            contact_urgence.nom != contact_urgence_data.get("nom")
+            or contact_urgence.prenom != contact_urgence_data.get("prenom")
+            or contact_urgence.email != contact_urgence_data.get("email")
+        ):
+            raise serializers.ValidationError(
+                "Le contact d'urgence existe déjà avec un autre numéro de téléphone"
+            )
+        # hopital
         try:
             hopital_initial = Hopital.objects.get(id=hopital_initial_id)
         except Hopital.DoesNotExist:
-            raise serializers.ValidationError("L'hopital que vous avez mentione n'existe pas")
+            raise serializers.ValidationError(
+                "L'hopital que vous avez mentione n'existe pas"
+            )
         # Attach the objects to validated_data
         validated_data["patient"] = patient
         validated_data["contact_urgence"] = contact_urgence
-        validated_data["hopital_initial"] = hopital_initial 
+        validated_data["hopital_initial"] = hopital_initial
         # Create the DPI object
         dpi = super().create(validated_data=validated_data)
         print(dpi)
         if antecedant_data:
             for antecedant in antecedant_data:
-                Antecedant.objects.create(dpi=dpi , **antecedant)
+                Antecedant.objects.create(dpi=dpi, **antecedant)
 
         # Generate the QR code after creation
         dpi.generate_qr_code()
@@ -152,53 +165,49 @@ class DpiSerializer(serializers.ModelSerializer):
 
 # serializer pour le soin
 class SoinSerializer(serializers.ModelSerializer):
-     class Meta :
-        model = Soin 
-        fields = ('id' ,'type')
-
-     
+    class Meta:
+        model = Soin
+        fields = ("id", "type")
 
 
-#serializer pour le soin
+# serializer pour le soin
 class DpiSoinSerializer(serializers.ModelSerializer):
-    dpi = DpiSerializer(read_only=True) 
+    dpi = DpiSerializer(read_only=True)
     dpi_id = serializers.IntegerField(write_only=True)
-    type = serializers.CharField(write_only=True) 
+    type = serializers.CharField(write_only=True)
     infermier_id = serializers.IntegerField(write_only=True)
     hopital = HopitalSerializer(read_only=True)
     hopital_id = serializers.IntegerField(write_only=True)
     infermier = InfermierSerializer(read_only=True)
     nom = serializers.CharField(write_only=True)
-    class Meta :
-        model = DpiSoin 
+
+    class Meta:
+        model = DpiSoin
         fields = (
-            'id' ,
-            'date' ,
-            'observation' ,
-            'type',
-            'nom' ,
-            'dpi_id',
-            'dpi',
-            'infermier',
-            'infermier_id',
-            'hopital_id',
-            'hopital'
-            )
-        extra_kwargs = {
-            'dpi' : {'read_only':True},
-            'date': {'read_only':True}
-             
-            }
-    # redefinition de la methode create pour creer un soin 
+            "id",
+            "date",
+            "observation",
+            "type",
+            "nom",
+            "dpi_id",
+            "dpi",
+            "infermier",
+            "infermier_id",
+            "hopital_id",
+            "hopital",
+        )
+        extra_kwargs = {"dpi": {"read_only": True}, "date": {"read_only": True}}
+
+    # redefinition de la methode create pour creer un soin
     def create(self, validated_data):
         # extraire les donnees necessaires a la creation du soin
-        dpi_id = validated_data.pop('dpi_id' , None)
-        type = validated_data.pop('type' , None)
-        infermier_id = validated_data.pop('infermier_id' ,None)
-        hopital_id = validated_data.pop('hopital_id' ,None)
-        nom = validated_data.pop('nom' , None)
+        dpi_id = validated_data.pop("dpi_id", None)
+        type = validated_data.pop("type", None)
+        infermier_id = validated_data.pop("infermier_id", None)
+        hopital_id = validated_data.pop("hopital_id", None)
+        nom = validated_data.pop("nom", None)
         # verifier si le DPI existe
-        if not nom :
+        if not nom:
             raise serializers.ValidationError("Le nom du soin est obligatoire")
         if not type:
             raise serializers.ValidationError("Le type du soin est obligatoire")
@@ -208,26 +217,28 @@ class DpiSoinSerializer(serializers.ModelSerializer):
             dpi = Dpi.objects.get(id=dpi_id)
         except Dpi.DoesNotExist:
             raise serializers.ValidationError("Le DPI n'existe pas")
-        if not infermier_id :
-            raise serializers.ValidationError("Les information de l'infermier est obligatoire")
-        try :
-            infermier = Infermier.objects.get(id = infermier_id)
+        if not infermier_id:
+            raise serializers.ValidationError(
+                "Les information de l'infermier est obligatoire"
+            )
+        try:
+            infermier = Infermier.objects.get(id=infermier_id)
         except Infermier.DoesNotExist:
             raise serializers.ValidationError("L'infermier n'existe pas")
-        if not hopital_id :
+        if not hopital_id:
             raise serializers.ValidationError("L'hopital est obligatoire")
         try:
             hopital = Hopital.objects.get(id=hopital_id)
-        except Hopital.DoesNotExist :
+        except Hopital.DoesNotExist:
             raise serializers.ValidationError("L'hopital n'existe pas")
-        try :
-            soin = Soin.objects.get(nom=nom , type = type) 
+        try:
+            soin = Soin.objects.get(nom=nom, type=type)
         except Soin.DoesNotExist:
-             soin = Soin.objects.create(nom= nom ,type=type)
-        validated_data['soin'] = soin 
-        validated_data['dpi'] = dpi
-        validated_data['infermier'] = infermier
-        validated_data['hopital'] = hopital 
+            soin = Soin.objects.create(nom=nom, type=type)
+        validated_data["soin"] = soin
+        validated_data["dpi"] = dpi
+        validated_data["infermier"] = infermier
+        validated_data["hopital"] = hopital
         return super().create(validated_data)
 
 
@@ -256,16 +267,19 @@ class ExamenSerializer(serializers.ModelSerializer):
         model = Examen
         fields = ["id", "type", "note", "traite", "resultats"]
         extra_kwargs = {"id": {"read_only": True}}
+
         def update(self, instance, validated_data):
-          resultats = validated_data.pop('resultats', None)
-          if not resultats:
-             raise serializers.ValidationError("Les resultats de l'examen sont obligatoires")
-          # Mettre a jour les resultats de l'examen
-          instance.resultats = resultats 
-          # Mettre a jour le champ traite
-          instance.traite = True 
-          instance.save()
-          return instance
+            resultats = validated_data.pop("resultats", None)
+            if not resultats:
+                raise serializers.ValidationError(
+                    "Les resultats de l'examen sont obligatoires"
+                )
+            # Mettre a jour les resultats de l'examen
+            instance.resultats = resultats
+            # Mettre a jour le champ traite
+            instance.traite = True
+            instance.save()
+            return instance
 
 
 class PrescriptionSerializer(serializers.ModelSerializer):
@@ -334,7 +348,10 @@ class ConsultationSerializer(serializers.ModelSerializer):
     ordonnances = OrdonnanceSerializer(many=True, write_only=True)
     examens = ExamenSerializer(many=True, write_only=True)
     resumes = ResumeSerializer(many=True, write_only=True)
-    outils = OutilSerializer(many=True, write_only=True)
+    outils = serializers.PrimaryKeyRelatedField(queryset=Outil.objects.all(), many=True)
+    medecins = serializers.PrimaryKeyRelatedField(
+        queryset=Medecin.objects.all(), many=True
+    )
 
     class Meta:
         model = Consultation
@@ -425,53 +442,48 @@ class ConsultationReadSerializer(serializers.ModelSerializer):
         ]
 
 
-#BilanRadiologique Serializer
+# BilanRadiologique Serializer
 class BilanRadiologiqueSerializer(serializers.ModelSerializer):
     radiologue = RadiologueSerializer(read_only=True)
     radiologue_id = serializers.IntegerField(write_only=True)
     examen = ExamenSerializer()
     # recevoir les images radiologiques
-    images_radio = serializers.ListField(
-        child=serializers.FileField(), write_only=True
-    )
+    images_radio = serializers.ListField(child=serializers.FileField(), write_only=True)
+
     class Meta:
-        model= BilanRadiologique 
-        fields = (
-            'id' , 
-            'images_radio', 
-            'examen',
-            'radiologue' ,
-            'radiologue_id'
-            )
+        model = BilanRadiologique
+        fields = ("id", "images_radio", "examen", "radiologue", "radiologue_id")
 
     def create(self, validated_data):
         # extraire les donnees necessaires a la creation du bilan radiologique
-        radiologue_id = validated_data.pop('radiologue_id' , None)
+        radiologue_id = validated_data.pop("radiologue_id", None)
         if not radiologue_id:
             raise serializers.ValidationError("Le radiologue est obligatoire")
         try:
             radiologue = Radiologue.objects.get(id=radiologue_id)
         except Radiologue.DoesNotExist:
             raise serializers.ValidationError("Le radiologue n'existe pas")
-        validated_data['radiologue'] = radiologue
+        validated_data["radiologue"] = radiologue
         print("validate data :")
-        print(validated_data['examen'])
-        # extraire les images radiologiques 
-        image_files = validated_data.pop('images_radio', [])
+        print(validated_data["examen"])
+        # extraire les images radiologiques
+        image_files = validated_data.pop("images_radio", [])
         urls = []
         for image in image_files:
             # Téléchargement vers Cloudinary
             try:
                 upload_result = cloudinary.uploader.upload(image)
-                urls.append(upload_result['url'])
+                urls.append(upload_result["url"])
             except Exception as e:
-                raise serializers.ValidationError("Erreur lors de l'ajout de l'image radiologique")
+                raise serializers.ValidationError(
+                    "Erreur lors de l'ajout de l'image radiologique"
+                )
         # Associer les URLs au champ images_radio
-        validated_data['images_radio'] = urls
+        validated_data["images_radio"] = urls
         return super().create(validated_data)
-    
 
-#Hospitalisation serializer
+
+# Hospitalisation serializer
 class HospitalisationSerializer(serializers.ModelSerializer):
     patient = PatientSerializer(read_only=True)
     hopital = HopitalSerializer(read_only=True)
@@ -480,17 +492,29 @@ class HospitalisationSerializer(serializers.ModelSerializer):
     patient_id = serializers.CharField(write_only=True)
     hopital_id = serializers.CharField(write_only=True)
     date_sortie = serializers.DateTimeField(read_only=True)
-    class Meta :
-        model = Hospitalisation 
-        fields = ('id' , 'date_entree' ,'date_sortie' , 'patient','patient_id','creer_par_id','cree_par','hopital_id','hopital')
+
+    class Meta:
+        model = Hospitalisation
+        fields = (
+            "id",
+            "date_entree",
+            "date_sortie",
+            "patient",
+            "patient_id",
+            "creer_par_id",
+            "cree_par",
+            "hopital_id",
+            "hopital",
+        )
         extra_kwargs = {
-            'date_sortie' : {'read_only':True},  
-            }
+            "date_sortie": {"read_only": True},
+        }
+
     def create(self, validated_data):
         # extraire les donnees necessaires a la creation de l'hospitalisation
-        creer_par_id = validated_data.pop('creer_par_id' , None)
-        hopital_id = validated_data.pop('hopital_id' , None)
-        patient_id = validated_data.pop('patient_id' , None)
+        creer_par_id = validated_data.pop("creer_par_id", None)
+        hopital_id = validated_data.pop("hopital_id", None)
+        patient_id = validated_data.pop("patient_id", None)
 
         if not hopital_id:
             raise serializers.ValidationError("L'hopital est obligatoire")
@@ -506,9 +530,8 @@ class HospitalisationSerializer(serializers.ModelSerializer):
             patient = Patient.objects.get(id=patient_id)
         except Patient.DoesNotExist:
             raise serializers.ValidationError("Le patient n'existe pas")
-        
-        validated_data['cree_par'] = cree_par
-        validated_data['hopital'] = hopital
-        validated_data['patient'] = patient
+
+        validated_data["cree_par"] = cree_par
+        validated_data["hopital"] = hopital
+        validated_data["patient"] = patient
         return super().create(validated_data)
-        
