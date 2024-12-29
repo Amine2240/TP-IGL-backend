@@ -112,11 +112,13 @@ class DpiSerializer(serializers.ModelSerializer):
         patient = PatientSerializer.create(
             PatientSerializer(), validated_data=patient_data
         )
+        print("patient creerrrrrrrrrrrrrrrrrr")
         mutuelle_nom = validated_data.pop("mutuelle" , None)
         if not mutuelle_nom:
             raise serializers.ValidationError("Le nom de mutuelle est obligatoire .")
         
         Mutuelle.objects.create(nom = mutuelle_nom , patient= patient)
+        print("mutuelle creerrrr")
         # Handle ContactUrgence
         telephone = contact_urgence_data.get("telephone")
         try:
