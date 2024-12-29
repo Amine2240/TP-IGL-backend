@@ -46,7 +46,7 @@ from .utils import decode_token, maj_examen, upload_image_to_cloudinary
 def creer_dpi(request):
     user = request.user
     print("dpi _creations")
-    print(request.cookies)
+    print(request.data.get('patient').get('user').get('telephone'))
     if request.method == "POST":
         if not Administratif.objects.filter(user=user).exists():
             return Response(
@@ -73,28 +73,26 @@ def creer_dpi(request):
 def ajouter_soin(request):
 
     user = request.user
-    user_id = user.id
+
     if not Infermier.objects.filter(user=user).exists():
         return Response(
             {"detail": "You do not have permission to perform this action."},
             status=status.HTTP_400_BAD_REQUEST,
         )
-
     data = {}
     data = request.data.copy()
-    data.update({"infermier_id": str(Infermier.objects.get(user_id=user_id).id)})
+    data['infermier_id'] = Infermier.objects.get(user=user).id
     print(data)
-
     dpi_soin_serializer = DpiSoinSerializer(data=data)
     if dpi_soin_serializer.is_valid():
         dpi_soin_serializer.save()
         return Response(
             {
                 "message": "Le soin a été ajouté avec succès",
-                "soin": dpi_soin_serializer.data,
             },
             status=status.HTTP_201_CREATED,
         )
+    print(dpi_soin_serializer.errors)
     return Response(dpi_soin_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 

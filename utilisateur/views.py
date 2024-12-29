@@ -48,7 +48,7 @@ class Login(APIView):
             value=str(access_token),
             httponly=True,
             secure=False,
-            samesite="None",
+            samesite="Lax",
         )
         return response
 
