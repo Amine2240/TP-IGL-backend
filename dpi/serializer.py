@@ -446,7 +446,7 @@ class ConsultationReadSerializer(serializers.ModelSerializer):
 class BilanRadiologiqueSerializer(serializers.ModelSerializer):
     radiologue = RadiologueSerializer(read_only=True)
     radiologue_id = serializers.IntegerField(write_only=True)
-    examen = ExamenSerializer()
+    examen = serializers.PrimaryKeyRelatedField(queryset=Examen.objects.all())
     # recevoir les images radiologiques
     images_radio = serializers.ListField(child=serializers.FileField(), write_only=True)
 
@@ -465,7 +465,6 @@ class BilanRadiologiqueSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("Le radiologue n'existe pas")
         validated_data["radiologue"] = radiologue
         print("validate data :")
-        print(validated_data["examen"])
         # extraire les images radiologiques
         image_files = validated_data.pop("images_radio", [])
         urls = []

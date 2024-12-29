@@ -110,10 +110,20 @@ def ajouter_Bilan_radiologique(request, pk_examen):
             status=status.HTTP_400_BAD_REQUEST,
         )
 
-    try:
-        examen = maj_examen(
-            pk_examen=pk_examen, resultats=request.data.get("examen[resultats]")
+    examen = get_object_or_404(Examen, id=pk_examen)
+    if examen.type != "radiologique":
+        return Response(
+            {"error": "This exam is not 'radiologique'."},
+            status=status.HTTP_400_BAD_REQUEST,
         )
+    if examen.traite:
+        return Response(
+            {"error": "This exam has already been treated."},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    try:
+        examen = maj_examen(examen=examen, resultats=request.data.get("resultats"))
     except ValidationError as e:
         return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
     except Examen.DoesNotExist:
@@ -122,7 +132,7 @@ def ajouter_Bilan_radiologique(request, pk_examen):
         )
 
     data = {
-        "examen": model_to_dict(examen),
+        "examen": examen.id,
         "radiologue_id": Radiologue.objects.get(user_id=user_id).id,
         "images_radio": request.FILES.getlist("images_radio"),
     }
@@ -133,7 +143,7 @@ def ajouter_Bilan_radiologique(request, pk_examen):
     if serializer_bilan_radiologique.is_valid():
         bilan = serializer_bilan_radiologique.save()
         return Response(
-            {"Message": "Le bilan a été ajouté avec succès", "Bilan": bilan},
+            {"Message": "Le bilan a été ajouté avec succès"},
             status=status.HTTP_200_OK,
         )
     return Response(
