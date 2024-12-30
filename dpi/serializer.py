@@ -195,6 +195,8 @@ class DpiSoinSerializer(serializers.ModelSerializer):
         hopital_id = validated_data.pop('hopital_id', None)
 
         # Validation et récupération des entités associées
+        if not soins_data  :
+            raise serializers.ValidationError("Les informations du soin sont obligatoires")
         if not dpi_id:
             raise serializers.ValidationError("Le DPI est obligatoire")
         try:
@@ -449,7 +451,7 @@ class BilanRadiologiqueSerializer(serializers.ModelSerializer):
     examen = ExamenSerializer()
     # recevoir les images radiologiques
     images_radio = serializers.ListField(
-        child=serializers.FileField(), write_only=True
+        child=serializers.FileField()
     )
     class Meta:
         model= BilanRadiologique 

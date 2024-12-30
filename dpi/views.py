@@ -10,6 +10,7 @@ from rest_framework.views import APIView
 
 from dpi.models import (
     BilanBiologique,
+    BilanRadiologique,
     Consultation,
     Dpi,
     Examen,
@@ -176,6 +177,41 @@ def creer_hospitalisation(request, pk_patient):
         hospitalisation_serializer.errors, status=status.HTTP_400_BAD_REQUEST
     )
 
+# get bilan radiologique 
+@permission_classes([IsAuthenticated])
+@api_view(["GET"])
+def patient_bilan_radiogique(request , patient_id):
+        patient = get_object_or_404(Patient, id=patient_id)
+        dpi = Dpi.objects.get(patient=patient)
+        examens = Examen.objects.filter(consultation__dpi=dpi)
+
+        bilan_radiologique = BilanRadiologique.objects.filter(examen__in=examens)
+
+        if not bilan_radiologique.exists():
+            return Response(
+                {
+                    "message": f"No Bilan Radiologique records found for patient with ID {patient_id}."
+                },
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        data = [
+            {
+                "id": bilan.id,
+                "radiologue": bilan.radiologue.user.username,
+                "images_radio":bilan.images_radio,
+                "examen_id": bilan.examen.id,
+                "examen_note": bilan.examen.note,
+                "examen_type": bilan.examen.type,
+                "examen_status": bilan.examen.traite,
+                "examen_resultats": bilan.examen.resultats,
+            }
+            for bilan in bilan_radiologique
+        ]
+
+        return Response(data, status=200)
+    
+    
 
 class ConsultationCreateView(APIView):
     permission_classes = [IsAuthenticated]
@@ -473,6 +509,7 @@ class DpiDetailView(APIView):
             dpi_data,
             status=status.HTTP_200_OK,
         )
+
 
 
 class OutilListView(generics.ListAPIView):
