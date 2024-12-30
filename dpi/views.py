@@ -34,6 +34,7 @@ from .serializer import (
     ConsultationSerializer,
     DpiSerializer,
     DpiSoinSerializer,
+    Antecedant ,
     ExamenSerializer,
     HospitalisationSerializer,
     OutilSerializer,
@@ -210,8 +211,24 @@ def patient_bilan_radiogique(request , patient_id):
         ]
 
         return Response(data, status=200)
-    
-    
+ # get antecendants 
+@permission_classes([IsAuthenticated])
+@api_view(["GET"])   
+def patient_antecedants(request , patient_id) :
+    patient = get_object_or_404(Patient ,id = patient_id) 
+    dpi = Dpi.objects.get(patient=patient)
+    antecedants = Antecedant.objects.filter(dpi=dpi)
+    print(antecedants)
+    data = [
+        {
+            "id" : antecedant.id ,
+            "nom" : antecedant.nom ,
+            "type":antecedant.type,
+        }
+        for antecedant in antecedants 
+    ]
+    print(data)
+    return Response(data , status=status.HTTP_200_OK)
 
 class ConsultationCreateView(APIView):
     permission_classes = [IsAuthenticated]
