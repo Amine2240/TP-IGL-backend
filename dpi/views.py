@@ -8,23 +8,47 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from dpi.models import (BilanBiologique, Consultation, Dpi, Examen, Outil,
-                        Parametre, ParametreValeur, Soin)
-from utilisateur.models import (Administratif, Infermier, Laborantin, Medecin,
-                                Patient, Radiologue)
+from dpi.models import (
+    BilanBiologique,
+    BilanRadiologique,
+    Consultation,
+    Dpi,
+    Examen,
+    Outil,
+    Parametre,
+    ParametreValeur,
+    Soin,
+)
+from utilisateur.models import (
+    Administratif,
+    Infermier,
+    Laborantin,
+    Medecin,
+    Patient,
+    Radiologue,
+)
 
-from .serializer import (BilanRadiologiqueSerializer,
-                         ConsultationReadSerializer, ConsultationSerializer,
-                         DpiSerializer, DpiSoinSerializer, ExamenSerializer,
-                         HospitalisationSerializer, OutilSerializer,
-                         SoinSerializer)
+from .serializer import (
+    Antecedant,
+    BilanRadiologiqueSerializer,
+    ConsultationReadSerializer,
+    ConsultationSerializer,
+    DpiSerializer,
+    DpiSoinSerializer,
+    ExamenSerializer,
+    HospitalisationSerializer,
+    OutilSerializer,
+    SoinSerializer,
+)
 from .utils import decode_token, maj_examen, upload_image_to_cloudinary
 
 
 @api_view(["POST"])  # decorateur pour la methode creer_patient
-@permission_classes([IsAuthenticated])
+# @permission_classes([IsAuthenticated])
 def creer_dpi(request):
     user = request.user
+    print("dpi _creations")
+    print(request.data.get("patient").get("user").get("telephone"))
     if request.method == "POST":
         if not Administratif.objects.filter(user=user).exists():
             return Response(
@@ -51,28 +75,26 @@ def creer_dpi(request):
 def ajouter_soin(request):
 
     user = request.user
-    user_id = user.id
+
     if not Infermier.objects.filter(user=user).exists():
         return Response(
             {"detail": "You do not have permission to perform this action."},
             status=status.HTTP_400_BAD_REQUEST,
         )
-
     data = {}
     data = request.data.copy()
-    data.update({"infermier_id": str(Infermier.objects.get(user_id=user_id).id)})
+    data["infermier_id"] = Infermier.objects.get(user=user).id
     print(data)
-
     dpi_soin_serializer = DpiSoinSerializer(data=data)
     if dpi_soin_serializer.is_valid():
         dpi_soin_serializer.save()
         return Response(
             {
                 "message": "Le soin a été ajouté avec succès",
-                "soin": dpi_soin_serializer.data,
             },
             status=status.HTTP_201_CREATED,
         )
+    print(dpi_soin_serializer.errors)
     return Response(dpi_soin_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
@@ -165,6 +187,61 @@ def creer_hospitalisation(request, pk_patient):
     return Response(
         hospitalisation_serializer.errors, status=status.HTTP_400_BAD_REQUEST
     )
+
+
+# get bilan radiologique
+@permission_classes([IsAuthenticated])
+@api_view(["GET"])
+def patient_bilan_radiogique(request, patient_id):
+    patient = get_object_or_404(Patient, id=patient_id)
+    dpi = Dpi.objects.get(patient=patient)
+    examens = Examen.objects.filter(consultation__dpi=dpi)
+
+    bilan_radiologique = BilanRadiologique.objects.filter(examen__in=examens)
+
+    if not bilan_radiologique.exists():
+        return Response(
+            {
+                "message": f"No Bilan Radiologique records found for patient with ID {patient_id}."
+            },
+            status=status.HTTP_404_NOT_FOUND,
+        )
+
+    data = [
+        {
+            "id": bilan.id,
+            "radiologue": bilan.radiologue.user.username,
+            "images_radio": bilan.images_radio,
+            "examen_id": bilan.examen.id,
+            "examen_note": bilan.examen.note,
+            "examen_type": bilan.examen.type,
+            "examen_status": bilan.examen.traite,
+            "examen_resultats": bilan.examen.resultats,
+        }
+        for bilan in bilan_radiologique
+    ]
+
+    return Response(data, status=200)
+
+
+# get antecendants
+@permission_classes([IsAuthenticated])
+@api_view(["GET"])
+def patient_antecedants(request, patient_id):
+    patient = get_object_or_404(Patient, id=patient_id)
+    dpi = Dpi.objects.get(patient=patient)
+    antecedants = Antecedant.objects.filter(dpi=dpi)
+    print(antecedants)
+    data = [
+        {
+            "id": antecedant.id,
+            "nom": antecedant.nom,
+            "type": antecedant.type,
+        }
+        for antecedant in antecedants
+    ]
+    print(data)
+    return Response(data, status=status.HTTP_200_OK)
 
 
 class ConsultationCreateView(APIView):

@@ -165,81 +165,100 @@ class DpiSerializer(serializers.ModelSerializer):
 
 # serializer pour le soin
 class SoinSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Soin
-        fields = ("id", "type")
+     observation = serializers.CharField(write_only=True)
+     class Meta :
+        model = Soin 
+        fields = ('id' , 'observation' , 'nom' ,'type')
 
-
-# serializer pour le soin
+     
+# serializer pour dpiSoin
 class DpiSoinSerializer(serializers.ModelSerializer):
+    soins = SoinSerializer(many=True)
     dpi = DpiSerializer(read_only=True)
     dpi_id = serializers.IntegerField(write_only=True)
-    type = serializers.CharField(write_only=True)
     infermier_id = serializers.IntegerField(write_only=True)
     hopital = HopitalSerializer(read_only=True)
     hopital_id = serializers.IntegerField(write_only=True)
     infermier = InfermierSerializer(read_only=True)
-    nom = serializers.CharField(write_only=True)
 
     class Meta:
         model = DpiSoin
         fields = (
-            "id",
-            "date",
-            "observation",
-            "type",
-            "nom",
-            "dpi_id",
-            "dpi",
-            "infermier",
-            "infermier_id",
-            "hopital_id",
-            "hopital",
+            'id',
+            'date',
+            'soins',
+            'dpi_id',
+            'dpi',
+            'infermier',
+            'infermier_id',
+            'hopital_id',
+            'hopital',
         )
-        extra_kwargs = {"dpi": {"read_only": True}, "date": {"read_only": True}}
+        extra_kwargs = {
+            'dpi': {'read_only': True},
+            'date': {'read_only': True},
+        }
 
-    # redefinition de la methode create pour creer un soin
+    # Redéfinition de la méthode create pour gérer plusieurs soins
     def create(self, validated_data):
-        # extraire les donnees necessaires a la creation du soin
-        dpi_id = validated_data.pop("dpi_id", None)
-        type = validated_data.pop("type", None)
-        infermier_id = validated_data.pop("infermier_id", None)
-        hopital_id = validated_data.pop("hopital_id", None)
-        nom = validated_data.pop("nom", None)
-        # verifier si le DPI existe
-        if not nom:
-            raise serializers.ValidationError("Le nom du soin est obligatoire")
-        if not type:
-            raise serializers.ValidationError("Le type du soin est obligatoire")
+        soins_data = validated_data.pop('soins', None)  # Extraire la liste des soins
+        dpi_id = validated_data.pop('dpi_id', None)
+        infermier_id = validated_data.pop('infermier_id', None)
+        hopital_id = validated_data.pop('hopital_id', None)
+
+        # Validation et récupération des entités associées
+        if not soins_data  :
+            raise serializers.ValidationError("Les informations du soin sont obligatoires")
         if not dpi_id:
             raise serializers.ValidationError("Le DPI est obligatoire")
         try:
             dpi = Dpi.objects.get(id=dpi_id)
         except Dpi.DoesNotExist:
             raise serializers.ValidationError("Le DPI n'existe pas")
+
         if not infermier_id:
-            raise serializers.ValidationError(
-                "Les information de l'infermier est obligatoire"
-            )
+            raise serializers.ValidationError("L'information de l'infirmier est obligatoire")
         try:
             infermier = Infermier.objects.get(id=infermier_id)
         except Infermier.DoesNotExist:
-            raise serializers.ValidationError("L'infermier n'existe pas")
+            raise serializers.ValidationError("L'infirmier n'existe pas")
+
         if not hopital_id:
-            raise serializers.ValidationError("L'hopital est obligatoire")
+            raise serializers.ValidationError("L'hôpital est obligatoire")
         try:
             hopital = Hopital.objects.get(id=hopital_id)
         except Hopital.DoesNotExist:
-            raise serializers.ValidationError("L'hopital n'existe pas")
-        try:
-            soin = Soin.objects.get(nom=nom, type=type)
-        except Soin.DoesNotExist:
-            soin = Soin.objects.create(nom=nom, type=type)
-        validated_data["soin"] = soin
-        validated_data["dpi"] = dpi
-        validated_data["infermier"] = infermier
-        validated_data["hopital"] = hopital
-        return super().create(validated_data)
+            raise serializers.ValidationError("L'hôpital n'existe pas")
+
+        # Créer les soins et les associer
+        dpisoin_instances = []
+        for soin_data in soins_data:
+           
+            nom = soin_data.get('nom')
+            type = soin_data.get('type')
+            observation = soin_data.get('observation')
+            if not nom:
+                raise serializers.ValidationError("Le nom du soin est obligatoire")
+            if not type:
+                raise serializers.ValidationError("Le type du soin est obligatoire")
+
+            # Vérifier si le soin existe ou le créer
+            soin, _ = Soin.objects.get_or_create(nom=nom, type=type)
+        
+            # Créer un DpiSoin pour ce soin spécifique
+            dpisoin_instance = DpiSoin.objects.create(
+                dpi=dpi,
+                infermier=infermier,
+                observation =observation ,
+                hopital=hopital,
+                soin=soin,
+                **validated_data
+            )
+            print("dpi soins")
+            print(dpisoin_instance)
+            dpisoin_instances.append(dpisoin_instance)
+
+        return dpisoin_instances
 
 
 # Medicament Serializer
@@ -448,8 +467,9 @@ class BilanRadiologiqueSerializer(serializers.ModelSerializer):
     radiologue_id = serializers.IntegerField(write_only=True)
     examen = serializers.PrimaryKeyRelatedField(queryset=Examen.objects.all())
     # recevoir les images radiologiques
-    images_radio = serializers.ListField(child=serializers.FileField(), write_only=True)
-
+    images_radio = serializers.ListField(
+        child=serializers.FileField()
+    )
     class Meta:
         model = BilanRadiologique
         fields = ("id", "images_radio", "examen", "radiologue", "radiologue_id")
