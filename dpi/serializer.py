@@ -467,12 +467,14 @@ class BilanRadiologiqueSerializer(serializers.ModelSerializer):
         print("validate data :")
         # extraire les images radiologiques
         image_files = validated_data.pop("images_radio", [])
+        print(validated_data)
         urls = []
         for image in image_files:
             # Téléchargement vers Cloudinary
             try:
                 upload_result = cloudinary.uploader.upload(image)
-                urls.append(upload_result["url"])
+                print(upload_result)
+                urls.append(upload_result.get("url"))
             except Exception as e:
                 raise serializers.ValidationError(
                     "Erreur lors de l'ajout de l'image radiologique"

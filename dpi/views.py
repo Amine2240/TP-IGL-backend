@@ -8,36 +8,16 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from dpi.models import (
-    BilanBiologique,
-    Consultation,
-    Dpi,
-    Examen,
-    Outil,
-    Parametre,
-    ParametreValeur,
-    Soin,
-)
-from utilisateur.models import (
-    Administratif,
-    Infermier,
-    Laborantin,
-    Medecin,
-    Patient,
-    Radiologue,
-)
+from dpi.models import (BilanBiologique, Consultation, Dpi, Examen, Outil,
+                        Parametre, ParametreValeur, Soin)
+from utilisateur.models import (Administratif, Infermier, Laborantin, Medecin,
+                                Patient, Radiologue)
 
-from .serializer import (
-    BilanRadiologiqueSerializer,
-    ConsultationReadSerializer,
-    ConsultationSerializer,
-    DpiSerializer,
-    DpiSoinSerializer,
-    ExamenSerializer,
-    HospitalisationSerializer,
-    OutilSerializer,
-    SoinSerializer,
-)
+from .serializer import (BilanRadiologiqueSerializer,
+                         ConsultationReadSerializer, ConsultationSerializer,
+                         DpiSerializer, DpiSoinSerializer, ExamenSerializer,
+                         HospitalisationSerializer, OutilSerializer,
+                         SoinSerializer)
 from .utils import decode_token, maj_examen, upload_image_to_cloudinary
 
 
@@ -130,12 +110,12 @@ def ajouter_Bilan_radiologique(request, pk_examen):
         return Response(
             {"error": "Examen n'existe pas."}, status=status.HTTP_404_NOT_FOUND
         )
-
     data = {
         "examen": examen.id,
         "radiologue_id": Radiologue.objects.get(user_id=user_id).id,
         "images_radio": request.FILES.getlist("images_radio"),
     }
+    print("data ", data)
 
     serializer_bilan_radiologique = BilanRadiologiqueSerializer(
         data=data,

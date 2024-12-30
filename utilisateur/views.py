@@ -7,6 +7,7 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
+
 from utilisateur.models import Medecin, Patient, Utilisateur
 from utilisateur.serializer import MedecinSerializer
 
@@ -54,8 +55,41 @@ class UserInfoView(APIView):
     def get(self, request):
         user = request.user
 
+        role_id = None
+        if user.role.lower() == "patient":
+            try:
+                role_id = user.patient.id
+            except AttributeError:
+                role_id = None
+        elif user.role.lower() == "medecin":
+            try:
+                role_id = user.medecin.id
+            except AttributeError:
+                role_id = None
+        elif user.role.lower() == "administratif":
+            try:
+                role_id = user.administratif.id
+            except AttributeError:
+                role_id = None
+        elif user.role.lower() == "infermier":
+            try:
+                role_id = user.infermier.id
+            except AttributeError:
+                role_id = None
+        elif user.role.lower() == "radiologue":
+            try:
+                role_id = user.radiologue.id
+            except AttributeError:
+                role_id = None
+        elif user.role.lower() == "laborantin":
+            try:
+                role_id = user.laborantin.id
+            except AttributeError:
+                role_id = None
+
         user_data = {
             "id": user.id,
+            "roleId": role_id,
             "username": user.username,
             "email": user.email,
             "nom": user.nom,
