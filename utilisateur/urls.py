@@ -1,6 +1,6 @@
 from django.urls import path
 
-from dpi.views import PatientBilanBiologiqueView
+from dpi.views import PatientBilanBiologiqueView , patient_bilan_radiogique
 
 from .views import (
     ListPatientsView,
@@ -18,6 +18,11 @@ urlpatterns = [
         "patients/<int:patient_id>/bilans/biologique/",
         PatientBilanBiologiqueView.as_view(),
         name="patient_bilans_biologique",
+    ),
+    path(
+        "patients/<int:patient_id>/bilans/radiologique/",
+        patient_bilan_radiogique ,
+        name="patient_bilans_radiologique",
     ),
     path("medecins/", MedecinListView.as_view(), name="medecins-list"),
     path(
