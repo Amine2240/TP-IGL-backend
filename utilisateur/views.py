@@ -1,6 +1,6 @@
 import cloudinary.uploader
 from decouple import config
-from django.shortcuts import render
+from django.shortcuts import get_object_or_404, render
 from rest_framework import generics, status
 from rest_framework.exceptions import AuthenticationFailed
 from rest_framework.permissions import AllowAny, IsAuthenticated
@@ -8,7 +8,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 
-from utilisateur.models import Medecin, Patient, Utilisateur
+from utilisateur.models import Administratif, Medecin, Patient, Utilisateur
 from utilisateur.serializer import MedecinSerializer
 
 # Create your views here.
@@ -167,6 +167,59 @@ class UpdateProfilePictureView(APIView):
             # Saving to db
             user.photo_profil = profile_picture_url
             user.save()
+
+            return Response(
+                {
+                    "message": "Profile picture updated successfully.",
+                    "profile_picture_url": profile_picture_url,
+                },
+                status=status.HTTP_200_OK,
+            )
+
+        except Exception as e:
+            return Response(
+                {"error": f"An error occurred while uploading the image: {str(e)}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+
+class UpdatePatientProfilePictureView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, patient_id):
+        user = request.user
+
+        if not Administratif.objects.filter(user=user).exists():
+            return Response(
+                {"detail": "You do not have permission to perform this action."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if "profilePicture" not in request.FILES:
+            return Response(
+                {"error": "No file provided. Please upload a profile picture."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        profile_picture = request.FILES["profilePicture"]
+        patient = get_object_or_404(Patient, id=patient_id)
+        patient_user = patient.user
+        try:
+            # Uploading the image to the cloud
+            upload_result = cloudinary.uploader.upload(
+                profile_picture,
+                folder="profile_pictures",
+                public_id=f"user_{patient_user.id}",
+                overwrite=True,
+                resource_type="image",
+            )
+
+            # getting teh url which's gonna be saved into db
+            profile_picture_url = upload_result.get("url")
+
+            # Saving to db
+            patient_user.photo_profil = profile_picture_url
+            patient_user.save()
 
             return Response(
                 {
