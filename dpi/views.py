@@ -10,6 +10,7 @@ from rest_framework.views import APIView
 
 from dpi.models import (
     BilanBiologique,
+    BilanRadiologique,
     Consultation,
     Dpi,
     Examen,
@@ -28,6 +29,7 @@ from utilisateur.models import (
 )
 
 from .serializer import (
+    Antecedant,
     BilanRadiologiqueSerializer,
     ConsultationReadSerializer,
     ConsultationSerializer,
@@ -42,9 +44,11 @@ from .utils import decode_token, maj_examen, upload_image_to_cloudinary
 
 
 @api_view(["POST"])  # decorateur pour la methode creer_patient
-@permission_classes([IsAuthenticated])
+# @permission_classes([IsAuthenticated])
 def creer_dpi(request):
     user = request.user
+    print("dpi _creations")
+    print(request.data.get("patient").get("user").get("telephone"))
     if request.method == "POST":
         if not Administratif.objects.filter(user=user).exists():
             return Response(
@@ -71,61 +75,70 @@ def creer_dpi(request):
 def ajouter_soin(request):
 
     user = request.user
-    user_id = user.id
+
     if not Infermier.objects.filter(user=user).exists():
         return Response(
             {"detail": "You do not have permission to perform this action."},
             status=status.HTTP_400_BAD_REQUEST,
         )
-
     data = {}
     data = request.data.copy()
-    data.update({"infermier_id": str(Infermier.objects.get(user_id=user_id).id)})
+    data["infermier_id"] = Infermier.objects.get(user=user).id
     print(data)
-
     dpi_soin_serializer = DpiSoinSerializer(data=data)
     if dpi_soin_serializer.is_valid():
         dpi_soin_serializer.save()
         return Response(
             {
                 "message": "Le soin a été ajouté avec succès",
-                "soin": dpi_soin_serializer.data,
             },
             status=status.HTTP_201_CREATED,
         )
+    print(dpi_soin_serializer.errors)
     return Response(dpi_soin_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 # ajouter bilan radiologique
 @api_view(["POST"])
-@permission_classes([IsAuthenticated])
+ 
 def ajouter_Bilan_radiologique(request, pk_examen):
-
+    permission_classes = [IsAuthenticated]
     user = request.user
-    user_id = user.id
+    user_id = request.data.get("userId")
 
-    if not Radiologue.objects.filter(user=user).exists():
+    '''if not Radiologue.objects.filter(user=user).exists():
         return Response(
             {"detail": "You do not have permission to perform this action."},
             status=status.HTTP_400_BAD_REQUEST,
         )
-
-    try:
-        examen = maj_examen(
-            pk_examen=pk_examen, resultats=request.data.get("examen[resultats]")
+    '''
+    examen = get_object_or_404(Examen, id=pk_examen)
+    if examen.type != "radiologique":
+        return Response(
+            {"error": "This exam is not 'radiologique'."},
+            status=status.HTTP_400_BAD_REQUEST,
         )
+    if examen.traite:
+        return Response(
+            {"error": "This exam has already been treated."},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    '''try:
+       # examen = maj_examen(examen=examen, resultats=request.data.get("resultats"))
     except ValidationError as e:
         return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
     except Examen.DoesNotExist:
         return Response(
             {"error": "Examen n'existe pas."}, status=status.HTTP_404_NOT_FOUND
         )
-
+    '''    
     data = {
-        "examen": model_to_dict(examen),
-        "radiologue_id": Radiologue.objects.get(user_id=user_id).id,
+        "examen": pk_examen,
+        "radiologue_id": user_id,
         "images_radio": request.FILES.getlist("images_radio"),
     }
+    print("data ", data)
 
     serializer_bilan_radiologique = BilanRadiologiqueSerializer(
         data=data,
@@ -133,7 +146,7 @@ def ajouter_Bilan_radiologique(request, pk_examen):
     if serializer_bilan_radiologique.is_valid():
         bilan = serializer_bilan_radiologique.save()
         return Response(
-            {"Message": "Le bilan a été ajouté avec succès", "Bilan": bilan},
+            {"Message": "Le bilan a été ajouté avec succès"},
             status=status.HTTP_200_OK,
         )
     return Response(
@@ -175,6 +188,61 @@ def creer_hospitalisation(request, pk_patient):
     return Response(
         hospitalisation_serializer.errors, status=status.HTTP_400_BAD_REQUEST
     )
+
+
+# get bilan radiologique
+@permission_classes([IsAuthenticated])
+@api_view(["GET"])
+def patient_bilan_radiogique(request, patient_id):
+    patient = get_object_or_404(Patient, id=patient_id)
+    dpi = Dpi.objects.get(patient=patient)
+    examens = Examen.objects.filter(consultation__dpi=dpi)
+
+    bilan_radiologique = BilanRadiologique.objects.filter(examen__in=examens)
+
+    if not bilan_radiologique.exists():
+        return Response(
+            {
+                "message": f"No Bilan Radiologique records found for patient with ID {patient_id}."
+            },
+            status=status.HTTP_404_NOT_FOUND,
+        )
+
+    data = [
+        {
+            "id": bilan.id,
+            "radiologue": bilan.radiologue.user.username,
+            "images_radio": bilan.images_radio,
+            "examen_id": bilan.examen.id,
+            "examen_note": bilan.examen.note,
+            "examen_type": bilan.examen.type,
+            "examen_status": bilan.examen.traite,
+            "examen_resultats": bilan.examen.resultats,
+        }
+        for bilan in bilan_radiologique
+    ]
+
+    return Response(data, status=200)
+
+
+# get antecendants
+@permission_classes([IsAuthenticated])
+@api_view(["GET"])
+def patient_antecedants(request, patient_id):
+    patient = get_object_or_404(Patient, id=patient_id)
+    dpi = Dpi.objects.get(patient=patient)
+    antecedants = Antecedant.objects.filter(dpi=dpi)
+    print(antecedants)
+    data = [
+        {
+            "id": antecedant.id,
+            "nom": antecedant.nom,
+            "type": antecedant.type,
+        }
+        for antecedant in antecedants
+    ]
+    print(data)
+    return Response(data, status=status.HTTP_200_OK)
 
 
 class ConsultationCreateView(APIView):
@@ -285,10 +353,14 @@ class ExamenListView(APIView):
 
 
 class CreateBilanBiologiqueView(APIView):
-    permission_classes = [IsAuthenticated]
+    
+    
 
     def post(self, request):
+        print(f"Authorization Header: {request.META.get('HTTP_AUTHORIZATION')}")
+        permission_classes = [IsAuthenticated]
         examen_id = request.data.get("examen_id")
+        print(examen_id)
         graph_values = request.data.get("graph_values")
         resultats = request.data.get("resultats")
         missing_fields = []
@@ -308,14 +380,15 @@ class CreateBilanBiologiqueView(APIView):
             )
 
         # Check if the user is a Laborantin
-        user = request.user
-        if not Laborantin.objects.filter(user=user).exists():
+        # user = request.user
+        user_id=request.data.get('user_id')
+        #print(user)
+        ''' if not Laborantin.objects.filter(user=user).exists():
             return Response(
                 {"detail": "You do not have permission to perform this action."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-
-        laborantin_id = request.user.laborantin.id
+        '''
         examen = get_object_or_404(Examen, id=examen_id)
 
         # Validate exam type
@@ -339,7 +412,7 @@ class CreateBilanBiologiqueView(APIView):
 
         # Create the BilanBiologique
         bilan_biologique = BilanBiologique.objects.create(
-            laborantin_id=laborantin_id, examen=examen
+            laborantin_id=user_id, examen=examen
         )
 
         if graph_values:
@@ -370,7 +443,7 @@ class CreateBilanBiologiqueView(APIView):
             {
                 "message": "Bilan Biologique successfully created.",
                 "bilan_biologique_id": bilan_biologique.id,
-                "laborantin_id": laborantin_id,
+                "laborantin_id": user_id,
                 "examen_id": examen_id,
             },
             status=status.HTTP_201_CREATED,
@@ -412,9 +485,10 @@ class PatientBilanBiologiqueView(APIView):
 
 
 class GraphValuesView(APIView):
-    permission_classes = [IsAuthenticated]
+   
 
     def get(self, request, bilan_id):
+        permission_classes = [IsAuthenticated]
         bilan = get_object_or_404(BilanBiologique, id=bilan_id)
 
         parametre_values = ParametreValeur.objects.filter(bilan_biologique=bilan)
