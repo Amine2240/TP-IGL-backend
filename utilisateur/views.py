@@ -1,13 +1,13 @@
 import cloudinary.uploader
 from decouple import config
-from django.shortcuts import render
+from django.shortcuts import get_object_or_404, render
 from rest_framework import generics, status
 from rest_framework.exceptions import AuthenticationFailed
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
-from utilisateur.models import Medecin, Patient, Utilisateur
+from utilisateur.models import Administratif, Medecin, Patient, Utilisateur
 from utilisateur.serializer import MedecinSerializer
 
 # Create your views here.
@@ -54,8 +54,41 @@ class UserInfoView(APIView):
     def get(self, request):
         user = request.user
 
+        role_id = None
+        if user.role.lower() == "patient":
+            try:
+                role_id = user.patient.id
+            except AttributeError:
+                role_id = None
+        elif user.role.lower() == "medecin":
+            try:
+                role_id = user.medecin.id
+            except AttributeError:
+                role_id = None
+        elif user.role.lower() == "administratif":
+            try:
+                role_id = user.administratif.id
+            except AttributeError:
+                role_id = None
+        elif user.role.lower() == "infermier":
+            try:
+                role_id = user.infermier.id
+            except AttributeError:
+                role_id = None
+        elif user.role.lower() == "radiologue":
+            try:
+                role_id = user.radiologue.id
+            except AttributeError:
+                role_id = None
+        elif user.role.lower() == "laborantin":
+            try:
+                role_id = user.laborantin.id
+            except AttributeError:
+                role_id = None
+
         user_data = {
             "id": user.id,
+            "roleId": role_id,
             "username": user.username,
             "email": user.email,
             "nom": user.nom,
@@ -147,3 +180,55 @@ class UpdateProfilePictureView(APIView):
                 {"error": f"An error occurred while uploading the image: {str(e)}"},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
+            
+class UpdatePatientProfilePictureView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, patient_id):
+        user = request.user
+
+        if not Administratif.objects.filter(user=user).exists():
+            return Response(
+                {"detail": "You do not have permission to perform this action."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if "profilePicture" not in request.FILES:
+            return Response(
+                {"error": "No file provided. Please upload a profile picture."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        profile_picture = request.FILES["profilePicture"]
+        patient = get_object_or_404(Patient, id=patient_id)
+        patient_user = patient.user
+        try:
+            # Uploading the image to the cloud
+            upload_result = cloudinary.uploader.upload(
+                profile_picture,
+                folder="profile_pictures",
+                public_id=f"user_{patient_user.id}",
+                overwrite=True,
+                resource_type="image",
+            )
+
+            # getting teh url which's gonna be saved into db
+            profile_picture_url = upload_result.get("url")
+
+            # Saving to db
+            patient_user.photo_profil = profile_picture_url
+            patient_user.save()
+
+            return Response(
+                {
+                    "message": "Profile picture updated successfully.",
+                    "profile_picture_url": profile_picture_url,
+                },
+                status=status.HTTP_200_OK,
+            )
+
+        except Exception as e:
+            return Response(
+                {"error": f"An error occurred while uploading the image: {str(e)}"},
+    status=status.HTTP_500_INTERNAL_SERVER_ERROR
+)

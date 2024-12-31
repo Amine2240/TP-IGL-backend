@@ -336,7 +336,10 @@ class ConsultationSerializer(serializers.ModelSerializer):
     ordonnances = OrdonnanceSerializer(many=True, write_only=True)
     examens = ExamenSerializer(many=True, write_only=True)
     resumes = ResumeSerializer(many=True, write_only=True)
-    outils = OutilSerializer(many=True, write_only=True)
+    outils = serializers.PrimaryKeyRelatedField(queryset=Outil.objects.all(), many=True)
+    medecins = serializers.PrimaryKeyRelatedField(
+        queryset=Medecin.objects.all(), many=True
+    )
 
     class Meta:
         model = Consultation
@@ -351,6 +354,7 @@ class ConsultationSerializer(serializers.ModelSerializer):
             "medecins",
             "resumes",
             "outils",
+            "diagnostic",
         ]
         extra_kwargs = {"id": {"read_only": True}}
 
