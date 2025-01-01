@@ -50,6 +50,8 @@ class Login(APIView):
 
 
 class Logout(APIView):
+    permission_classes = [IsAuthenticated]
+
     def post(self, request):
         response = Response({"message": "Logged out successfully"})
         response.delete_cookie("auth_token")
