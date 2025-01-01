@@ -9,6 +9,7 @@ from dpi.views import (
 from .views import (
     ListPatientsView,
     Login,
+    Logout,
     MedecinListView,
     UpdatePatientProfilePictureView,
     UpdateProfilePictureView,
@@ -17,6 +18,7 @@ from .views import (
 
 urlpatterns = [
     path("login/", Login.as_view()),
+    path("logout/", Logout.as_view()),
     path("user-info/", UserInfoView.as_view()),
     path("patients/", ListPatientsView.as_view(), name="patients-list"),
     path(

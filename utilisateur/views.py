@@ -1,7 +1,7 @@
 import cloudinary.uploader
-from decouple import config
 from django.shortcuts import get_object_or_404, render
 from rest_framework import generics, status
+from rest_framework.decorators import api_view
 from rest_framework.exceptions import AuthenticationFailed
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
@@ -46,6 +46,13 @@ class Login(APIView):
             secure=False,
             samesite="Lax",
         )
+        return response
+
+
+class Logout(APIView):
+    def post(self, request):
+        response = Response({"message": "Logged out successfully"})
+        response.delete_cookie("auth_token")
         return response
 
 
