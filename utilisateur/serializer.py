@@ -87,7 +87,8 @@ class PatientSerializer(serializers.ModelSerializer):  # serializer pour le pati
     class Meta:
         model = Patient
         fields = ("id", "NSS", "user")
-        extra_kwargs = {"NSS": {"required": True},}
+        extra_kwargs = {"NSS": {"required": True}}
+  
 
     def create(
         self, validated_data

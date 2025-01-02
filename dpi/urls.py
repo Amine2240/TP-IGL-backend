@@ -6,7 +6,6 @@ from .views import *
 urlpatterns = [
     path("creer-dpi", creer_dpi, name="creer-dpi"),
     path("ajouter-soin", ajouter_soin, name="ajouter-soin"),
-    path("ajouter-bilan-radiologique/", ajouter_Bilan_radiologique),
     path("<int:patient_id>/", DpiDetailView.as_view(), name="non-treated-exams"),
     path("outils/", OutilListView.as_view(), name="outils"),
     path("soins/", SoinListView.as_view(), name="soins"),
