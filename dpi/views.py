@@ -135,7 +135,7 @@ def ajouter_Bilan_radiologique(request, pk_examen):
             {"error": "Examen n'existe pas."}, status=status.HTTP_404_NOT_FOUND
         )
     data = {
-        "examen": examen,
+        "examen_id": pk_examen,
         "radiologue_id": Radiologue.objects.get(user_id=user_id).id,
         "images_radio": request.FILES.getlist("images_radio"),
     }

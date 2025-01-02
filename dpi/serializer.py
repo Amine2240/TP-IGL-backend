@@ -435,24 +435,24 @@ class ConsultationReadSerializer(serializers.ModelSerializer):
 class BilanRadiologiqueSerializer(serializers.ModelSerializer):
     radiologue = RadiologueSerializer(read_only=True)
     radiologue_id = serializers.IntegerField(write_only=True)
-    examen = ExamenSerializer()
-    # recevoir les images radiologiques
+    examen_id = serializers.IntegerField(write_only=True)  # Expect the exam ID directly
     images_radio = serializers.ListField(
         child=serializers.FileField(), write_only=True
     )
+
     class Meta:
-        model= BilanRadiologique 
+        model = BilanRadiologique
         fields = (
-            'id' , 
-            'images_radio', 
-            'examen',
-            'radiologue' ,
-            'radiologue_id'
-            )
+            'id',
+            'images_radio',
+            'examen_id',  # Use exam ID directly
+            'radiologue',
+            'radiologue_id',
+        )
 
     def create(self, validated_data):
-        # extraire les donnees necessaires a la creation du bilan radiologique
-        radiologue_id = validated_data.pop('radiologue_id' , None)
+        # Handle radiologue
+        radiologue_id = validated_data.pop('radiologue_id', None)
         if not radiologue_id:
             raise serializers.ValidationError("Le radiologue est obligatoire")
         try:
@@ -460,22 +460,30 @@ class BilanRadiologiqueSerializer(serializers.ModelSerializer):
         except Radiologue.DoesNotExist:
             raise serializers.ValidationError("Le radiologue n'existe pas")
         validated_data['radiologue'] = radiologue
-        print("validate data :")
-        print(validated_data['examen'])
-        # extraire les images radiologiques 
+
+        # Handle examen_id
+        examen_id = validated_data.pop('examen_id', None)
+        if not examen_id:
+            raise serializers.ValidationError("L'ID de l'examen est obligatoire")
+        try:
+            examen = Examen.objects.get(id=examen_id)
+        except Examen.DoesNotExist:
+            raise serializers.ValidationError("L'examen n'existe pas")
+        validated_data['examen'] = examen
+
+        # Handle image uploads
         image_files = validated_data.pop('images_radio', [])
         urls = []
         for image in image_files:
-            # Téléchargement vers Cloudinary
             try:
                 upload_result = cloudinary.uploader.upload(image)
                 urls.append(upload_result['url'])
             except Exception as e:
                 raise serializers.ValidationError("Erreur lors de l'ajout de l'image radiologique")
-        # Associer les URLs au champ images_radio
         validated_data['images_radio'] = urls
+
         return super().create(validated_data)
-    
+
 
 #Hospitalisation serializer
 class HospitalisationSerializer(serializers.ModelSerializer):
