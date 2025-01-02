@@ -409,6 +409,7 @@ class ExamenListViewPatient(APIView):
                     "id": exam.id,
                     "type": exam.type,
                     "traite": exam.traite,
+                    "date": exam.consultation.date_de_consultation,
                     "note": exam.note,
                     "resultats": exam.resultats,
                     "doctor": {
