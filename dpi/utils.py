@@ -32,6 +32,7 @@ def valider_hopital(id):
 def maj_examen(pk_examen, resultats):
 
     examen = get_object_or_404(Examen, id=pk_examen)
+    print(examen)
     if not resultats:
         raise ValidationError({"Erreur": "Les résultats d'examen sont obligatoires."})
     
