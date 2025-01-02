@@ -351,6 +351,78 @@ class ExamenListView(APIView):
         return Response(data, status=status.HTTP_200_OK)
 
 
+class ExamenListViewPatient(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        traite_param = request.query_params.get("traite")
+        type_param = request.query_params.get("type")
+        patient_id = request.query_params.get("patient_id")
+
+        if traite_param is not None:
+            if traite_param.lower() == "true":
+                traite = True
+            elif traite_param.lower() == "false":
+                traite = False
+            else:
+                return Response(
+                    {"error": "'traite' must be 'true' or 'false'"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+        else:
+            traite = None
+
+        allowed_types = ["radiologique", "biologique"]
+        if type_param is not None:
+            if type_param.lower() not in allowed_types:
+                return Response(
+                    {"error": "Exam type can be either 'radiologique' or 'biologique'"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+        if patient_id is not None:
+            try:
+                patient_id = int(patient_id)
+            except ValueError:
+                return Response(
+                    {"error": "'patient_id' must be an integer"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+        exams = Examen.objects.all()
+
+        if traite is not None:
+            exams = exams.filter(traite=traite)
+
+        if type_param:
+            exams = exams.filter(type=type_param.lower())
+
+        if patient_id:
+            exams = exams.filter(consultation__dpi__patient__id=patient_id)
+
+        # Customizing the output data --> this can be changed based on the frontend need
+        # just gimme a call !
+        data = []
+        for exam in exams:
+            data.append(
+                {
+                    "id": exam.id,
+                    "type": exam.type,
+                    "traite": exam.traite,
+                    "note": exam.note,
+                    "resultats": exam.resultats,
+                    "doctor": {
+                        "id": exam.consultation.medecin_principal.id,
+                        "nom": exam.consultation.medecin_principal.user.nom,
+                        "prenom": exam.consultation.medecin_principal.user.prenom,
+                        "specialite": exam.consultation.medecin_principal.specialite,
+                    },
+                }
+            )
+
+        return Response(data, status=status.HTTP_200_OK)
+
+
 class CreateBilanBiologiqueView(APIView):
     permission_classes = [IsAuthenticated]
 

@@ -17,6 +17,7 @@ urlpatterns = [
         name="consultation-list-patient",
     ),
     path("examens/", ExamenListView.as_view(), name="non-treated-exams"),
+    path("examens-patient/", ExamenListViewPatient.as_view(), name="non-treated-exams"),
     path("bilans/biologique/", CreateBilanBiologiqueView.as_view()),
     path(
         "bilans/biologique/<int:bilan_id>/graph-values/",
