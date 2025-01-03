@@ -37,7 +37,6 @@ from .serializer import (
     ConsultationSerializer,
     DpiSerializer,
     DpiSoinSerializer,
-    Antecedant ,
     ExamenSerializer,
     HospitalisationSerializer,
     OutilSerializer,
@@ -191,57 +190,61 @@ def creer_hospitalisation(request, pk_patient):
         hospitalisation_serializer.errors, status=status.HTTP_400_BAD_REQUEST
     )
 
-# get bilan radiologique 
+
+# get bilan radiologique
 @permission_classes([IsAuthenticated])
 @api_view(["GET"])
-def patient_bilan_radiogique(request , patient_id):
-        patient = get_object_or_404(Patient, id=patient_id)
-        dpi = Dpi.objects.get(patient=patient)
-        examens = Examen.objects.filter(consultation__dpi=dpi)
+def patient_bilan_radiogique(request, patient_id):
+    patient = get_object_or_404(Patient, id=patient_id)
+    dpi = Dpi.objects.get(patient=patient)
+    examens = Examen.objects.filter(consultation__dpi=dpi)
 
-        bilan_radiologique = BilanRadiologique.objects.filter(examen__in=examens)
+    bilan_radiologique = BilanRadiologique.objects.filter(examen__in=examens)
 
-        if not bilan_radiologique.exists():
-            return Response(
-                {
-                    "message": f"No Bilan Radiologique records found for patient with ID {patient_id}."
-                },
-                status=status.HTTP_404_NOT_FOUND,
-            )
-
-        data = [
+    if not bilan_radiologique.exists():
+        return Response(
             {
-                "id": bilan.id,
-                "radiologue": bilan.radiologue.user.username,
-                "images_radio":bilan.images_radio,
-                "examen_id": bilan.examen.id,
-                "examen_note": bilan.examen.note,
-                "examen_type": bilan.examen.type,
-                "examen_status": bilan.examen.traite,
-                "examen_resultats": bilan.examen.resultats,
-            }
-            for bilan in bilan_radiologique
-        ]
+                "message": f"No Bilan Radiologique records found for patient with ID {patient_id}."
+            },
+            status=status.HTTP_404_NOT_FOUND,
+        )
 
-        return Response(data, status=200)
- # get antecendants 
+    data = [
+        {
+            "id": bilan.id,
+            "radiologue": bilan.radiologue.user.username,
+            "images_radio": bilan.images_radio,
+            "examen_id": bilan.examen.id,
+            "examen_note": bilan.examen.note,
+            "examen_type": bilan.examen.type,
+            "examen_status": bilan.examen.traite,
+            "examen_resultats": bilan.examen.resultats,
+        }
+        for bilan in bilan_radiologique
+    ]
+
+    return Response(data, status=200)
+
+
+# get antecendants
 @permission_classes([IsAuthenticated])
-@api_view(["GET"])   
-def patient_antecedants(request , patient_id) :
-    patient = get_object_or_404(Patient ,id = patient_id) 
+@api_view(["GET"])
+def patient_antecedants(request, patient_id):
+    patient = get_object_or_404(Patient, id=patient_id)
     dpi = Dpi.objects.get(patient=patient)
     antecedants = Antecedant.objects.filter(dpi=dpi)
     print(antecedants)
     data = [
         {
-            "id" : antecedant.id ,
-            "nom" : antecedant.nom ,
-            "type":antecedant.type,
+            "id": antecedant.id,
+            "nom": antecedant.nom,
+            "type": antecedant.type,
         }
-        for antecedant in antecedants 
+        for antecedant in antecedants
     ]
     print(data)
-    return Response(data , status=status.HTTP_200_OK)
+    return Response(data, status=status.HTTP_200_OK)
+
 
 # get bilan radiologique
 @permission_classes([IsAuthenticated])
@@ -402,6 +405,79 @@ class ExamenListView(APIView):
                     },
                 }
             )
+        return Response(data, status=status.HTTP_200_OK)
+
+
+class ExamenListViewPatient(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        traite_param = request.query_params.get("traite")
+        type_param = request.query_params.get("type")
+        patient_id = request.query_params.get("patient_id")
+
+        if traite_param is not None:
+            if traite_param.lower() == "true":
+                traite = True
+            elif traite_param.lower() == "false":
+                traite = False
+            else:
+                return Response(
+                    {"error": "'traite' must be 'true' or 'false'"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+        else:
+            traite = None
+
+        allowed_types = ["radiologique", "biologique"]
+        if type_param is not None:
+            if type_param.lower() not in allowed_types:
+                return Response(
+                    {"error": "Exam type can be either 'radiologique' or 'biologique'"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+        if patient_id is not None:
+            try:
+                patient_id = int(patient_id)
+            except ValueError:
+                return Response(
+                    {"error": "'patient_id' must be an integer"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+        exams = Examen.objects.all()
+
+        if traite is not None:
+            exams = exams.filter(traite=traite)
+
+        if type_param:
+            exams = exams.filter(type=type_param.lower())
+
+        if patient_id:
+            exams = exams.filter(consultation__dpi__patient__id=patient_id)
+
+        # Customizing the output data --> this can be changed based on the frontend need
+        # just gimme a call !
+        data = []
+        for exam in exams:
+            data.append(
+                {
+                    "id": exam.id,
+                    "type": exam.type,
+                    "traite": exam.traite,
+                    "date": exam.consultation.date_de_consultation,
+                    "note": exam.note,
+                    "resultats": exam.resultats,
+                    "doctor": {
+                        "id": exam.consultation.medecin_principal.id,
+                        "nom": exam.consultation.medecin_principal.user.nom,
+                        "prenom": exam.consultation.medecin_principal.user.prenom,
+                        "specialite": exam.consultation.medecin_principal.specialite,
+                    },
+                }
+            )
+
         return Response(data, status=status.HTTP_200_OK)
 
 
@@ -602,7 +678,6 @@ class DpiDetailView(APIView):
             dpi_data,
             status=status.HTTP_200_OK,
         )
-
 
 
 class OutilListView(generics.ListAPIView):

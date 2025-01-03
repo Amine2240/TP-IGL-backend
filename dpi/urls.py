@@ -18,6 +18,7 @@ urlpatterns = [
     ),
     path("examens/", ExamenListView.as_view(), name="non-treated-exams"),
     path("bilans/biologique/", CreateBilanBiologiqueView.as_view(),name="create-bilan-biologique"),
+    path("examens-patient/", ExamenListViewPatient.as_view(), name="non-treated-exams"),
     path(
         "bilans/biologique/<int:bilan_id>/graph-values/",
         GraphValuesView.as_view(),

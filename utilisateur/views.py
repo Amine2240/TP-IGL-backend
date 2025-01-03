@@ -2,6 +2,7 @@ import cloudinary.uploader
 from decouple import config
 from django.shortcuts import get_object_or_404, render
 from rest_framework import generics, status
+from rest_framework.decorators import api_view
 from rest_framework.exceptions import AuthenticationFailed
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
@@ -45,6 +46,15 @@ class Login(APIView):
             secure=False,
             samesite="Lax",
         )
+        return response
+
+
+class Logout(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        response = Response({"message": "Logged out successfully"})
+        response.delete_cookie("auth_token")
         return response
 
 
@@ -180,7 +190,7 @@ class UpdateProfilePictureView(APIView):
                 {"error": f"An error occurred while uploading the image: {str(e)}"},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
-            
+
 class UpdatePatientProfilePictureView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -230,5 +240,4 @@ class UpdatePatientProfilePictureView(APIView):
         except Exception as e:
             return Response(
                 {"error": f"An error occurred while uploading the image: {str(e)}"},
-    status=status.HTTP_500_INTERNAL_SERVER_ERROR
-)
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,)

@@ -80,12 +80,12 @@ MIDDLEWARE = [
 
 # EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 
-# EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
-# EMAIL_HOST = "smtp.gmail.com"
-# EMAIL_PORT = config("EMAIL_PORT")
-# EMAIL_USE_TLS = True
-# EMAIL_HOST_USER = config("EMAIL_HOST_USER")
-# EMAIL_HOST_PASSWORD = config("EMAIL_HOST_PASSWORD")
+EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+EMAIL_HOST = "smtp.gmail.com"
+EMAIL_PORT = config("EMAIL_PORT")
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = config("EMAIL_HOST_USER")
+EMAIL_HOST_PASSWORD = config("EMAIL_HOST_PASSWORD")
 
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:4200",
@@ -93,8 +93,8 @@ CORS_ALLOWED_ORIGINS = [
 CSRF_COOKIE_SECURE = False
 CORS_ALLOW_ALL_HOSTS = True
 CORS_ALLOW_CREDENTIALS = True
-# CSRF_COOKIE_SAMESITE = "None"
-# SESSION_COOKIE_SAMESITE = "None"
+#SESSION_COOKIE_SAMESITE = "None"
+#CSRF_COOKIE_SAMESITE = "None"
 ROOT_URLCONF = "IGLBackend.urls"
 
 TEMPLATES = [
