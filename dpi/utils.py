@@ -35,6 +35,11 @@ def valider_hopital(id):
 # maj examen
 def maj_examen(examen, resultats):
 
+<<<<<<< HEAD
+    examen = get_object_or_404(Examen, id=pk_examen)
+    print(examen)
+=======
+>>>>>>> integration/oussama
     if not resultats:
         raise ValidationError({"Erreur": "Les résultats d'examen sont obligatoires."})
 

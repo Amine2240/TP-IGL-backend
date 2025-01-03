@@ -117,11 +117,13 @@ class DpiSerializer(serializers.ModelSerializer):
         patient = PatientSerializer.create(
             PatientSerializer(), validated_data=patient_data
         )
-        mutuelle_nom = validated_data.pop("mutuelle", None)
+        print("patient creerrrrrrrrrrrrrrrrrr")
+        mutuelle_nom = validated_data.pop("mutuelle" , None)
         if not mutuelle_nom:
             raise serializers.ValidationError("Le nom de mutuelle est obligatoire .")
-
-        Mutuelle.objects.create(nom=mutuelle_nom, patient=patient)
+        
+        Mutuelle.objects.create(nom = mutuelle_nom , patient= patient)
+        print("mutuelle creerrrr")
         # Handle ContactUrgence
         telephone = contact_urgence_data.get("telephone")
         try:
@@ -385,6 +387,7 @@ class ConsultationSerializer(serializers.ModelSerializer):
             "medecins",
             "resumes",
             "outils",
+            "diagnostic",
         ]
         extra_kwargs = {"id": {"read_only": True}}
 
@@ -465,43 +468,55 @@ class ConsultationReadSerializer(serializers.ModelSerializer):
 class BilanRadiologiqueSerializer(serializers.ModelSerializer):
     radiologue = RadiologueSerializer(read_only=True)
     radiologue_id = serializers.IntegerField(write_only=True)
-    examen = serializers.PrimaryKeyRelatedField(queryset=Examen.objects.all())
-    # recevoir les images radiologiques
+    examen_id = serializers.IntegerField(write_only=True)  # Expect the exam ID directly
     images_radio = serializers.ListField(
         child=serializers.FileField()
     )
+
     class Meta:
         model = BilanRadiologique
-        fields = ("id", "images_radio", "examen", "radiologue", "radiologue_id")
+        fields = (
+            'id',
+            'images_radio',
+            'examen_id',  # Use exam ID directly
+            'radiologue',
+            'radiologue_id',
+        )
 
     def create(self, validated_data):
-        # extraire les donnees necessaires a la creation du bilan radiologique
-        radiologue_id = validated_data.pop("radiologue_id", None)
+        # Handle radiologue
+        radiologue_id = validated_data.pop('radiologue_id', None)
         if not radiologue_id:
             raise serializers.ValidationError("Le radiologue est obligatoire")
         try:
             radiologue = Radiologue.objects.get(id=radiologue_id)
         except Radiologue.DoesNotExist:
             raise serializers.ValidationError("Le radiologue n'existe pas")
-        validated_data["radiologue"] = radiologue
-        print("validate data :")
-        # extraire les images radiologiques
-        image_files = validated_data.pop("images_radio", [])
-        print(validated_data)
+        validated_data['radiologue'] = radiologue
+
+        # Handle examen_id
+        examen_id = validated_data.pop('examen_id', None)
+        if not examen_id:
+            raise serializers.ValidationError("L'ID de l'examen est obligatoire")
+        try:
+            examen = Examen.objects.get(id=examen_id)
+        except Examen.DoesNotExist:
+            raise serializers.ValidationError("L'examen n'existe pas")
+        validated_data['examen'] = examen
+
+        # Handle image uploads
+        image_files = validated_data.pop('images_radio', [])
         urls = []
         for image in image_files:
-            # Téléchargement vers Cloudinary
             try:
                 upload_result = cloudinary.uploader.upload(image)
-                print(upload_result)
-                urls.append(upload_result.get("url"))
+                urls.append(upload_result["url"])
             except Exception as e:
-                raise serializers.ValidationError(
-                    "Erreur lors de l'ajout de l'image radiologique"
-                )
-        # Associer les URLs au champ images_radio
-        validated_data["images_radio"] = urls
+                raise serializers.ValidationError("Erreur lors de l'ajout de l'image radiologique")
+        validated_data['images_radio'] = urls
+
         return super().create(validated_data)
+
 
 
 # Hospitalisation serializer

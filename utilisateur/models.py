@@ -73,6 +73,7 @@ class Patient(models.Model):
         Utilisateur, on_delete=models.CASCADE, related_name="patient"
     )
     NSS = models.CharField(max_length=32, unique=True)
+    # mutuelle = models.CharField(max_length=255, null=True, blank=True)
 
     def __str__(self):
         return f"Patient: {self.user.nom} {self.user.prenom}"

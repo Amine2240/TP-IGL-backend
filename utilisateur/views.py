@@ -1,4 +1,5 @@
 import cloudinary.uploader
+from decouple import config
 from django.shortcuts import get_object_or_404, render
 from rest_framework import generics, status
 from rest_framework.decorators import api_view
@@ -7,7 +8,6 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
-
 from utilisateur.models import Administratif, Medecin, Patient, Utilisateur
 from utilisateur.serializer import MedecinSerializer
 
@@ -191,7 +191,6 @@ class UpdateProfilePictureView(APIView):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
-
 class UpdatePatientProfilePictureView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -241,5 +240,4 @@ class UpdatePatientProfilePictureView(APIView):
         except Exception as e:
             return Response(
                 {"error": f"An error occurred while uploading the image: {str(e)}"},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            )
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,)

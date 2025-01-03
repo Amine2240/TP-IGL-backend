@@ -138,6 +138,7 @@ class Consultation(models.Model):
     hopital = models.ForeignKey("Hopital", on_delete=models.CASCADE)
     date_de_consultation = models.DateField(default=timezone.now)
     heure = models.TimeField(default=timezone.now)
+    diagnostic = models.TextField(null=True, blank=True)
 
 
 class ConsultationMedecin(models.Model):

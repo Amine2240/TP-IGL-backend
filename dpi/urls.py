@@ -17,13 +17,15 @@ urlpatterns = [
         name="consultation-list-patient",
     ),
     path("examens/", ExamenListView.as_view(), name="non-treated-exams"),
+    path("bilans/biologique/", CreateBilanBiologiqueView.as_view(),name="create-bilan-biologique"),
     path("examens-patient/", ExamenListViewPatient.as_view(), name="non-treated-exams"),
-    path("bilans/biologique/", CreateBilanBiologiqueView.as_view()),
     path(
         "bilans/biologique/<int:bilan_id>/graph-values/",
         GraphValuesView.as_view(),
         name="graph_values",
     ),
+    
+
     path("bilans/radiologique/<int:pk_examen>/", ajouter_Bilan_radiologique),
     path("creer-hospitalisation/<int:pk_patient>/", creer_hospitalisation),
 ]

@@ -49,10 +49,12 @@ class UtilisateurSerializer(
         validated_data["username"] = email
 
         password = UtilisateurSerializer.generer_mot_de_passe()
+        print("mot de passe genererrrrrrrr")
 
         user = Utilisateur.objects.create_user(
             **validated_data, role=role, password=password, email=email
         )  # creation de l'utilisateur
+        print("utilistaeurrrr creeeer")
         return user
 
 
@@ -92,10 +94,12 @@ class PatientSerializer(serializers.ModelSerializer):  # serializer pour le pati
         self, validated_data
     ):  # redefinition de la methode create pour creer un patient
         user_data = validated_data.pop("user")
+        
 
         user = UtilisateurSerializer.create(
             UtilisateurSerializer(), validated_data=user_data
         )
+        print("user createddddddddddddd")
 
         # Create the patient instance
         patient = Patient.objects.create(
