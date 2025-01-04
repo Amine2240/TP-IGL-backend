@@ -1,11 +1,14 @@
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.support import expected_conditions as EC
 
 class TestCreateDPI:
     def __init__(self, driver_path, app_url, data):
-        self.driver = webdriver.Chrome(executable_path=driver_path)
+        service = Service(driver_path)
+        self.driver = webdriver.Chrome(service=service,
+                                       keep_alive=True)
         self.app_url = app_url
         self.data = data
 
@@ -21,6 +24,7 @@ class TestCreateDPI:
         self.driver.find_element(By.ID, 'dateNaissance').send_keys(patient["date_naissance"])
         self.driver.find_element(By.ID, 'telephone').send_keys(patient["telephone"])
         self.driver.find_element(By.ID, 'email').send_keys(patient["email"])
+        print("heelow")
         #self.driver.find_element(By.ID, 'role').send_keys(patient["role"])
         self.driver.find_element(By.ID, 'NSS').send_keys(str(self.data["patient"]["NSS"]))
         
@@ -81,7 +85,20 @@ class TestCreateDPI:
             self.fill_patient_form()
             self.fill_contact_urgence_form()
             self.fill_mutuelle()
-            self.fill_antecedants()
+            self.select_radio(
+                field_name="sousTraitement",
+                value=self.data.get("sous_traitement")
+            )
+            self.select_checkboxes(
+                checkbox_list=self.data.get("antecedants"),
+                field_name="Diabète"
+            )
+            self.select_radio(
+                field_name="vaccine",
+                value=self.data.get("vaccine")
+            )
+           # self.fill_antecedants()
+            self.select_image(self.data.get("image_path"))
             self.submit_form()
             self.wait_for_success()
         except Exception as e:
@@ -93,34 +110,37 @@ class TestCreateDPI:
 test_data = {
     "patient": {
         "user": {
-            "nom": "Doe",
-            "prenom": "John",
-            "date_naissance": "1980-05-15",
-            "telephone": "0221237890",
-            "email": "john.doe@example.com",
-            "role": "patient"
+            "nom": "John",
+            "prenom": "Doe",
+            "date_naissance": "1985-03-15",
+            "telephone": "123456789",
+            "email": "johndoe@example.com",
         },
-        "NSS": 45
+        "NSS": 123456789
     },
     "contact_urgence": {
-        "nom": "Smith",
-        "prenom": "Jane",
-        "telephone": "0221237810",
-        "email": "jane.smith@example.com"
+        "nom": "Jane",
+        "prenom": "Smith",
+        "telephone": "987654321",
+        "email": "janesmith@example.com"
     },
-    "hopital_initial_id": 1,
     "mutuelle": {
-        "nom":"Health Mutual",
-        "id": 123
-        },
+        "nom": "HealthPlus",
+        "id": "12345"
+    },
     "antecedants": [
-        {"nom": "Doe", "type": "Type A"},
-        {"nom": "Doe", "type": "Type B"}
-    ]
+        {"nom": "Hypertension", "type": "Chronic"},
+        {"nom": "Asthma", "type": "Allergy"}
+    ],
+    "image_path": r"C:\Users\GEEK\Pictures\adidas.jpg",  
+    "sous_traitement": "yes",
+    
+    "vaccine": "yes"
 }
+
 
 # Run the test
 if __name__ == "__main__":
     #adjust the path to the chromedriver executable
-    test = TestCreateDPI(driver_path='C:\chromedriver\chromedriver-win64', app_url='http://localhost:4200', data=test_data)
+    test = TestCreateDPI(driver_path='C:\chromedriver\chromedriver-win64\chromedriver.exe', app_url='http://localhost:4200/formPatient', data=test_data)
     test.run_test()
