@@ -24,7 +24,6 @@ class TestCreateDPI:
         self.driver.find_element(By.ID, 'dateNaissance').send_keys(patient["date_naissance"])
         self.driver.find_element(By.ID, 'telephone').send_keys(patient["telephone"])
         self.driver.find_element(By.ID, 'email').send_keys(patient["email"])
-        print("heelow")
         #self.driver.find_element(By.ID, 'role').send_keys(patient["role"])
         self.driver.find_element(By.ID, 'NSS').send_keys(str(self.data["patient"]["NSS"]))
         
@@ -39,26 +38,18 @@ class TestCreateDPI:
 
     def fill_mutuelle(self):
         self.driver.find_element(By.ID, 'mutuelle').send_keys(self.data.get("mutuelle").get("nom"))
-        self.driver.find_element(By.ID, 'mutuelleID').send_keys(self.data.get("mutuelle").get("id"))
-
-    def fill_antecedants(self):
-        """Fill out antecedants."""
-        for antecedant in self.data["antecedants"]:
-            self.driver.find_element(By.ID, 'antecedant_nom').send_keys(antecedant["nom"])
-            self.driver.find_element(By.ID, 'antecedant_type').send_keys(antecedant["type"])
-            self.driver.find_element(By.ID, 'add_antecedant').click()
-      
-            
-    def select_image(self):
+        self.driver.find_element(By.ID, 'mutuelleId').send_keys(self.data.get("mutuelle").get("id"))
+             
+    def select_image(self , image_path):
         """Select the image to upload."""
-        self.driver.find_element(By.ID, 'imageInput').send_keys(self.data["image_path"])
+        self.driver.find_element(By.ID, 'imageInput').send_keys(image_path)
 
     def select_checkboxes(self, checkbox_list, field_name):
         """Select multiple checkboxes."""
         for checkbox in checkbox_list:
-            checkbox_elem = self.driver.find_element(By.CSS_SELECTOR, f"input[name='{field_name}'][value='{checkbox}']")
-            if not checkbox_elem.is_selected():
-                checkbox_elem.click()
+            checkbox_value = checkbox.get("nom")
+            checkbox_elem = self.driver.find_element(By.CSS_SELECTOR, f"input[name='{field_name}'][id='{checkbox_value}']")
+            self.driver.execute_script("arguments[0].click();", checkbox_elem)
 
 
     def submit_form(self):
@@ -67,16 +58,15 @@ class TestCreateDPI:
 
     def wait_for_success(self):
         """Wait for the success message to appear."""
+        # Wait for the success message to appear you can change this 
         WebDriverWait(self.driver, 10).until(
             EC.presence_of_element_located((By.ID, 'success_message'))
         )
         print("Test Passed: DPI created successfully!")
-    def upload_image(self):
-        """Upload the image."""
-        self.driver.find_element(By.ID, 'imageInput').send_keys(self.data["image_path"])
+
     def select_radio(self, field_name, value):
         """Select a radio button based on value."""
-        radio_button = self.driver.find_element(By.CSS_SELECTOR, f"input[name='{field_name}'][value='{value}']")
+        radio_button = self.driver.find_element(By.CSS_SELECTOR, f"input[name='{field_name}'][id='{value}']")
         radio_button.click()
     def run_test(self):
         """Run the entire test."""
@@ -93,6 +83,7 @@ class TestCreateDPI:
                 checkbox_list=self.data.get("antecedants"),
                 field_name="Diabète"
             )
+          
             self.select_radio(
                 field_name="vaccine",
                 value=self.data.get("vaccine")
@@ -129,13 +120,13 @@ test_data = {
         "id": "12345"
     },
     "antecedants": [
-        {"nom": "Hypertension", "type": "Chronic"},
-        {"nom": "Asthma", "type": "Allergy"}
+        {"nom": "Diabète", "type": "Chronic"},
+        
     ],
     "image_path": r"C:\Users\GEEK\Pictures\adidas.jpg",  
-    "sous_traitement": "yes",
+    "sous_traitement": "Oui",
     
-    "vaccine": "yes"
+    "vaccine": "Oui"
 }
 
 
@@ -143,4 +134,7 @@ test_data = {
 if __name__ == "__main__":
     #adjust the path to the chromedriver executable
     test = TestCreateDPI(driver_path='C:\chromedriver\chromedriver-win64\chromedriver.exe', app_url='http://localhost:4200/formPatient', data=test_data)
-    test.run_test()
+    try:
+        test.run_test()
+    except Exception as e:
+        print(f"Test Failed: {e}")
