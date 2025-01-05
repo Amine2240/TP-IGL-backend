@@ -8,26 +8,26 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-
 from dpi.models import (
     BilanBiologique,
     BilanRadiologique,
     Consultation,
     Dpi,
     Examen,
+    Ordonnance,
     Outil,
     Parametre,
     ParametreValeur,
     Soin,
 )
 from utilisateur.models import (
-    Utilisateur,
     Administratif,
     Infermier,
     Laborantin,
     Medecin,
     Patient,
     Radiologue,
+    Utilisateur,
 )
 
 from .serializer import (
@@ -103,12 +103,12 @@ def ajouter_soin(request):
 # ajouter bilan radiologique
 @api_view(["POST"])
 def ajouter_Bilan_radiologique(request, pk_examen):
-    user_id=request.data.get('userId')
+    user_id = request.data.get("userId")
     print(user_id)
-    resultats = request.data.get('examen[resultats]')
+    resultats = request.data.get("examen[resultats]")
     print(resultats)
     user = Utilisateur.objects.filter(id=user_id).first()
-    
+
     if not Radiologue.objects.filter(user=user).exists():
         return Response(
             {"detail": "You do not have permission to perform this action."},
@@ -482,7 +482,6 @@ class ExamenListViewPatient(APIView):
 
 
 class CreateBilanBiologiqueView(APIView):
-    
 
     def post(self, request):
         permission_classes = [IsAuthenticated]
@@ -509,14 +508,13 @@ class CreateBilanBiologiqueView(APIView):
 
         # Check if the user is a Laborantin
         user = Utilisateur.objects.filter(id=user_id).first()
-      
+
         print(user.laborantin.id)
         if not Laborantin.objects.filter(user=user).exists():
             return Response(
                 {"detail": "You do not have permission to perform this action."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-        
 
         laborantin_id = user.laborantin.id
         examen = get_object_or_404(Examen, id=examen_id)
@@ -584,7 +582,7 @@ class PatientBilanBiologiqueView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request, patient_id):
-      
+
         patient = get_object_or_404(Patient, id=patient_id)
         dpi = Dpi.objects.get(patient=patient)
         examens = Examen.objects.filter(consultation__dpi=dpi)
@@ -616,7 +614,6 @@ class PatientBilanBiologiqueView(APIView):
 
 
 class GraphValuesView(APIView):
-    
 
     def get(self, request, bilan_id):
         permission_classes = [IsAuthenticated]
@@ -680,6 +677,31 @@ class DpiDetailView(APIView):
         )
 
 
+class ValiderOrdonnanceView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, ordonnance_id):
+        ordonnance = get_object_or_404(Ordonnance, id=ordonnance_id)
+
+        ordonnance_data = {
+            "dateCreation": ordonnance.date_de_creation,
+            "hopital": ordonnance.consultation.hopital.nom,
+            "creerPar": {
+                "nom": ordonnance.consultation.medecin_principal.user.nom,
+                "prenom": ordonnance.consultation.medecin_principal.user.prenom,
+                "specialite": ordonnance.consultation.medecin_principal.specialite,
+            },
+        }
+        response_data = {
+            "message": "L'ordonnance est validée avec succès",
+            "ordonnance": ordonnance_data,
+        }
+        return Response(
+            response_data,
+            status=status.HTTP_200_OK,
+        )
+
+
 class OutilListView(generics.ListAPIView):
     permission_classes = [IsAuthenticated]
     queryset = Outil.objects.all()
@@ -690,3 +712,4 @@ class SoinListView(generics.ListAPIView):
     permission_classes = [IsAuthenticated]
     queryset = Soin.objects.all()
     serializer_class = SoinSerializer
+

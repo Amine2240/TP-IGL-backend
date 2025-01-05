@@ -30,4 +30,9 @@ urlpatterns = [
     ),
     path("bilans/radiologique/<int:pk_examen>/", ajouter_Bilan_radiologique),
     path("creer-hospitalisation/<int:pk_patient>/", creer_hospitalisation),
+    path(
+        "SGPH/<int:ordonnance_id>/",
+        ValiderOrdonnanceView.as_view(),
+        name="validation-ordonnance",
+    ),
 ]
