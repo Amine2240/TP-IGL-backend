@@ -49,15 +49,20 @@ Assurez-vous que MySQL est installé et en cours d'exécution sur votre machine.
 
 Créez un fichier .env à la racine du projet et ajoutez-y le contenu suivant en remplaçant les valeurs par vos informations réelles :
 
-```
-DATABASE_NAME="IGL_db"
-DATABASE_USER="root"
-DATABASE_PASSWORD="root"
-DATABASE_HOST="0.0.0.0"
-DATABASE_PORT=3306
+```ini
+# Configuration de la base de données
+DATABASE_NAME="IGL_db"       # Nom de la base de données
+DATABASE_USER="root"         # Utilisateur MySQL
+DATABASE_PASSWORD="root"     # Mot de passe MySQL
+DATABASE_HOST="0.0.0.0"      # Adresse de l'hôte MySQL
+DATABASE_PORT=3306           # Port MySQL par défaut
+
+# Configuration Cloudinary
 CLOUD_NAME="doxcskw0g"
 API_KEY="75573411298282"
 API_SECRET="R4MVoxcGx_aNXZXrb_Iogwq6Y"
+
+# Configuration de l'email
 DEFAULT_FROM_EMAIL="votreemail@example.com"
 EMAIL_PORT=587
 EMAIL_HOST_USER="votreemail@example.com"
