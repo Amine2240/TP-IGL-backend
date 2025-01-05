@@ -28,9 +28,7 @@ class Dpi(models.Model):
     contact_urgence = models.ForeignKey(
         "ContactUrgence", on_delete=models.SET_NULL, null=True, related_name="dpis"
     )
-    hopital_initial = models.ForeignKey(
-        "Hopital", on_delete=models.SET_NULL, null=True
-    )
+    hopital_initial = models.ForeignKey("Hopital", on_delete=models.SET_NULL, null=True)
     date_creation = models.DateField(
         default=timezone.now
     )  # automatiquement remplie lors de la creation du dpi
@@ -138,7 +136,7 @@ class Consultation(models.Model):
     hopital = models.ForeignKey("Hopital", on_delete=models.CASCADE)
     date_de_consultation = models.DateField(default=timezone.now)
     heure = models.TimeField(default=timezone.now)
-    diagnostic = models.TextField(null=True, blank=True)
+    # diagnostic = models.TextField(null=True, blank=True)
 
 
 class ConsultationMedecin(models.Model):
@@ -241,7 +239,6 @@ class GraphiqueTendance(models.Model):
     bilan_biologique = models.OneToOneField(
         BilanBiologique, on_delete=models.CASCADE, related_name="graphiqus"
     )
-
 
 
 class Parametre(models.Model):
