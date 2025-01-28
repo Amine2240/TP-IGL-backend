@@ -483,8 +483,9 @@ class ExamenListViewPatient(APIView):
 
 class CreateBilanBiologiqueView(APIView):
 
+    permission_classes = [IsAuthenticated]
+
     def post(self, request):
-        permission_classes = [IsAuthenticated]
         examen_id = request.data.get("examen_id")
         print(examen_id)
         graph_values = request.data.get("graph_values")
@@ -712,4 +713,3 @@ class SoinListView(generics.ListAPIView):
     permission_classes = [IsAuthenticated]
     queryset = Soin.objects.all()
     serializer_class = SoinSerializer
-
