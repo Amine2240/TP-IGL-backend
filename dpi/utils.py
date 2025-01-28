@@ -53,4 +53,3 @@ def decode_token(request):
     if not user:
         raise AuthenticationFailed("Invalid token or user not found.")
     return user.id
-
