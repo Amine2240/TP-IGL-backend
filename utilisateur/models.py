@@ -40,6 +40,7 @@ class Utilisateur(
         ],
     )
     email = models.EmailField(
+        max_length=191,
         unique=True,
         blank=False,
         null=False,

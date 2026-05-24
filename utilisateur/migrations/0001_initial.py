@@ -34,7 +34,7 @@ class Migration(migrations.Migration):
                 ('prenom', models.CharField(max_length=32)),
                 ('date_naissance', models.DateField()),
                 ('telephone', models.CharField(max_length=10, unique=True, validators=[django.core.validators.RegexValidator(message='Numero de telephone invalide', regex='^\\d{10}$')])),
-                ('email', models.EmailField(max_length=254, unique=True)),
+                ('email', models.EmailField(max_length=191, unique=True)),
                 ('photo_profil', models.URLField(blank=True, null=True)),
                 ('adresse', models.CharField(blank=True, max_length=100, null=True)),
                 ('role', models.CharField(choices=[('administratif', 'Administratif'), ('patient', 'Patient'), ('medecin', 'Medecin'), ('infermier', 'Infermier'), ('radiologue', 'Radiologue'), ('laborantin', 'Laborantin'), ('adminsystem', 'Adminsystem')], default='patient', max_length=16)),
