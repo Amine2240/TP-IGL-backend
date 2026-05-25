@@ -87,6 +87,7 @@ EMAIL_HOST_PASSWORD = config("EMAIL_HOST_PASSWORD")
 
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:4200",
+    "https://medicare-one-nu.vercel.app",
 ]
 CSRF_COOKIE_SECURE = False
 CORS_ALLOW_ALL_HOSTS = True
